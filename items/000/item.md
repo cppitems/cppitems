@@ -14,11 +14,11 @@ int main (){
 ### special highligting
 ```pmans
 // pmans c++ highlighting
-/* file: main.cpp */ /* compile: clang++ -std=c++17 main.cpp
+/* file: main.cpp */ /* compile: clang++ -std=c++17 main.cpp */
 int main /*b2*/ (){
     int a = /*b1*/ 5;
-    /*b*/ double /*x*/b = static_cast<double>(int);
-    /*f*/ double /*x*/b = static_cast<double>(/*f3*/ int);
+    /*b*/ double /*x*/ b = static_cast<double>(int);
+    /*f*/ double /*x*/ b = static_cast<double>(/*f3*/ int);
     // comment
     "this will be not shown" /// ... // line removed and replaced with ...
     "this line is fully removed" /// including the comment /// 
