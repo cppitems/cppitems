@@ -1,0 +1,56 @@
+    1  cd cppitems/items/01/
+    2  cd cppitems/
+    3  ls
+    4  cd items/001/cgrid/
+    5  ls
+    6  clang grid.cpp
+    7  clang grid.c
+    8  clang grid.c -c
+    9  clang grid.o main.c
+   10  ./a.out 
+   11  clang -### grid.c -c
+   12  clang -ccc-print-phases grid.c -c
+   13  clang -cc1 -ast-view grid.c -c
+   14  clang -cc1 -ast-view grid.c 
+   15  clang -cc1 -ast-dump grid.c 
+   16  clang -cc1 -ast-dump-xml grid.c 
+   17  clang -cc1 -ast-dump-xml grid.c
+   18  clang -Xclang -ast-dump grid.c
+   19  clang -Xclang -ast-dump grid.c -c
+   20  clang -Xclang -ast-dump grid.c
+   21  clang grid.c -c
+   22  clang -Xclang -ast-dump grid.c
+   23  clang -Xclang -ast-dump grid.c -c
+   24  clang -ccc-print-phases -O3 grid.c -c
+   25  clang -ccc-print-phases -emit-llvm grid.c -c
+   26  ls
+   27  clang  -emit-llvm grid.c -c
+   28  ls
+   29  cat grid.bc 
+   30  llvm-dis-10 grid.bc 
+   31  ls
+   32  cat grid.ll
+   33  clang  -emit-llvm -S grid.c -c
+   34  rm grid.ll grid.bc 
+   35  ls
+   36  clang  -emit-llvm -S grid.c -c
+   37  ls
+   38  clang -ccc-print-phases -emit-llvm -S grid.c -c
+   39  gcc -E grid.c
+   40  gcc -E grid.c -c
+   41  gcc -E grid.o main.c -c
+   42  gcc -E grid.o main.c 
+   43  gcc grid.c -c
+   44  gcc -C grid.c -c
+   45* gcc -E grid.c -c 
+   46  gcc -C grid.c -c
+   47  gcc -E grid.c -c
+   48  gcc -E grid.c -c | grep calloc
+   49  gcc -E grid.c -c >> test.bc
+   50  clang -cc1 -ast-dump-xml grid.c
+   51  clang -Xclang -ast-dump grid.c -c
+   52  cd ..
+   53  cd add/
+   54  clang -Xclang -ast-dump add.c -c
+   55  cd ..
+   56  history > history.txt

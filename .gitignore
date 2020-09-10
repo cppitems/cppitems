@@ -1,0 +1,7 @@
+*.o
+*.out
+*.bc
+*.so
+*.a
+*.ll
+main
