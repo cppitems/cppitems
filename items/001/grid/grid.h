@@ -7,4 +7,4 @@ struct Grid {
 typedef struct Grid GridType;
 void grid_init(GridType *grid);
 void grid_free(GridType *grid);
-double *grid_at(GridType *grid, int x, double y);
+double *grid_at(GridType *grid, int x, int y);

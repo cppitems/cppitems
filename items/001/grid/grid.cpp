@@ -1,8 +1,8 @@
-#include <cstdlib> // std::free, std::calloc
 #include "grid.h"
+#include <cstdlib> // std::free, std::calloc
 void grid_init(GridType *grid) {
   grid->nx = 3;
-  grid->ny = 4;  
+  grid->ny = 4;
   grid->data = (double *)std::calloc(grid->nx * grid->ny, sizeof(double));
 }
 void grid_free(GridType *grid) {
