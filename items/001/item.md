@@ -1,5 +1,5 @@
 5 // item status
-# Basisc: source code organization, comilation toolchain, distribution options, coding style
+# Source code organization, compilation toolchain, distribution options, coding style, linting, 
 This item briefly discusses important organizional options for a C++ project/library and steps through the phases of configuring and building a project using command line tools on a linux system and tools of the *LLVM* compiler infrastructure.
 
 ## Example library
@@ -183,9 +183,10 @@ FunctionDecl 0x11c1b10 <srcloc>  grid_at 'double *(GridType *, int, int)'
 |-ParmVarDecl 0x11c1968 <srcloc> x 'int'
 `-ParmVarDecl 0x11c19e8 <srcloc> y 'int'
 ```
+
 for the `grid_at` function allowing a direct mapping to names and positions in the original source files.
 
-If the code documents satifies the rules imposed by the language standard (i.e., a AST was successfully created), further stages of the translation, which are influenced by compiler flags produce the final output format. 
+If the code documents satisfies the rules imposed by the language standard (i.e., a AST was successfully created), further stages of the translation, which are influenced by compiler flags produce the final output format. 
 This final output object must comply to the language standard w.r.t. to the visibility of internal symbols to other objects, and referencing of external symbols used internally.
 
 The symbols of the resulting object file (or library) can be inspected using
@@ -345,7 +346,7 @@ Enabling sanitizers typically leads to a slowdown and increased memory consumpti
 
 
 ### Memory errors
-The AddressSanitizer (ASAN) detects problems related to memory access like out-of-bounds access and also contains a
+The AddressSanitizer (ASAN) detects problems related to memory access like *out-of-bounds* access and also contains a
 LeakSanitizer (LSAN) to detect memory leaks.
 It can be enabled using the `-fsanitize=address` compiler flag.
 For example this code
@@ -368,12 +369,12 @@ will report something like
 ==5420==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x608000000080 ...
 
 WRITE of size 8 at 0x608000000080 thread T0
-    #0 0x4c6181 in main /home/project/cppitems/items/001/grid/main_asan.cpp:7:29
+    #0 0x4c6181 in main .../main_asan.cpp:7:29
     ...
 0x608000000080 is located 0 bytes to the right of 96-byte region ...
 allocated by thread T0 here:
-    #0 0x494082 in calloc (/home/project/cppitems/items/001/grid/build/main_asan+0x494082)
-    #1 0x7f182b0c0a9a in grid_init(Grid*) /home/project/cppitems/items/001/grid/grid.cpp:6:26
+    #0 0x494082 in calloc (.../main_asan+0x494082)
+    #1 0x7f182b0c0a9a in grid_init(Grid*) .../grid.cpp:6:26
     ...
 ```
 for (1) and something like 
@@ -381,15 +382,15 @@ for (1) and something like
 ==5632==ERROR: LeakSanitizer: detected memory leaks
 
 Direct leak of 96 byte(s) in 1 object(s) allocated from:
-    #0 0x494032 in calloc (/home/project/cppitems/items/001/grid/build/main_asan+0x494032)
-    #1 0x7f2fb1d11a9a in grid_init(Grid*) /home/project/cppitems/items/001/grid/grid.cpp:6:26
-    #2 0x4c5ff2 in main /home/project/cppitems/items/001/grid/main_asan.cpp:4:3
+    #0 0x494032 in calloc (.../main_asan+0x494032)
+    #1 0x7f2fb1d11a9a in grid_init(Grid*) .../grid.cpp:6:26
+    #2 0x4c5ff2 in main .../main_asan.cpp:4:3
 ```
-for (2).
+for (2). 
 
 
 ### Reads of uninitialized values
-If the assignment of an uninitialized value is directly visible for the compiler, a warning can be issued at compile time
+If the assignment of an uninitialized value is directly visible for the compiler, a warning can be issued at compile time. 
 This is the case at (1) in
 ```pmans
 #include "grid.h"
@@ -409,26 +410,32 @@ int main() {
 ```
 which outputs something like
 ```
-...main_msan.cpp:6:27: error: variable 'b' is uninitialized when used here [-Werror,-Wuninitialized]
+...main_msan.cpp:6:27: error: variable 'b' is uninitialized ...
   *grid_at(&grid, 0, 0) = b; // (1) compiler warning
                           ^
 ```
 In contrast, if the usage happens in a different context like at (2), the compiler cannot help.
-MemorySanitizer (MSAN), which can be enabled using the `-fsanitize=memory` compiler flag can track the use of uninitialized values and warn if they are *read* (which means they influence the program behaivour).
+MemorySanitizer (MSAN), which can be enabled using the `-fsanitize=memory` compiler flag can track the use of uninitialized values and warn if they are first *read*, which happens at (3) and means that the program behaviour is influenced.
 The output of MSAN might look like
 ```
 ==10149==WARNING: MemorySanitizer: use-of-uninitialized-value
-    #0 0x497424 in main /home/project/cppitems/items/001/grid/main_msan.cpp:11:7
+    #0 0x497424 in main .../main_msan.cpp:11:7
     ...
   Uninitialized value was stored to memory at
-    #0 0x4977b5 in main::$_0::operator()() const /home/project/cppitems/items/001/grid/main_msan.cpp:8:27
+    #0 0x4977b5 in main::$_0::operator()() const .../main_msan.cpp:8:27
     ...
-  Uninitialized value was created by an allocation of 'b' in the stack frame of function 'main'
-    #0 0x4971c0 in main /home/project/cppitems/items/001/grid/main_msan.cpp:2
+  Uninitialized value was created by an allocation of 'b' in ... function 'main'
+    #0 0x4971c0 in main .../main_msan.cpp:2
 ```
 which also provides hints to where the uninitialized value originates from if `-fsanitize-memory-track-origins` is used.
 
 ### Data races
+If more than one *thread* of execution is used, *data races* occur when
+instructions from two different threads
+- access the same memory location,
+- at least one instruction is modifying value,
+- and no synchronization rule is present.
+
 
 
 # Tasks

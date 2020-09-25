@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 
 set(CMAKE_CXX_COMPILER "clang++" CACHE STRING "")
 set(CMAKE_EXPORT_COMPILE_COMMANDS true CACHE BOOL "")
-set(CMAKE_CXX_FLAGS "-std=c++17 -stdlib=libc++ -I/usr/lib/llvm-10/include/c++/v1 -pthread -Werror -Wall" CACHE STRING "")
+set(CMAKE_CXX_FLAGS "-std=c++17 -fopenmp -stdlib=libc++ -I/usr/lib/llvm-10/include/c++/v1 -pthread -Werror -Wall" CACHE STRING "")
 set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "")
 
 set(CMAKE_CXX_FLAGS_ASAN "-fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g" CACHE STRING "")
@@ -26,3 +26,7 @@ target_link_libraries(main_asan PRIVATE gridlib)
 
 add_executable(main_msan main_msan.cpp)
 target_link_libraries(main_msan PRIVATE gridlib)
+
+add_executable(main_tsan main_tsan.cpp)
+target_link_libraries(main_tsan PRIVATE gridlib)
+target_link_directories(main_tsan BEFORE PRIVATE "/opt/llvm-project/install/lib/") # special TSAN version for OMP
