@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.0)
+set(CMAKE_CXX_FLAGS "-std=c++17 -Werror -Wall" CACHE STRING "")
+project(001 LANGUAGES CXX)
+add_library(vector OBJECT vector.cpp vector.h)
+add_executable(main main.cpp)
+target_link_libraries(main PRIVATE vector)

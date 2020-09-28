@@ -1,5 +1,5 @@
-5 // item status
-# Source code organization, compilation toolchain, distribution options, coding style, linting, sanitizers
+1 // item status
+# L1: Source code organization, compilation toolchain, distribution options, coding style, linting, sanitizers
 This item briefly discusses important organizational options for a C++ project/library and steps through the phases of configuring and building a project using command line tools on a linux system and tools of the *LLVM* compiler infrastructure.
 
 ## Example library
@@ -81,9 +81,13 @@ For a single file, the full implementation is included in a dependent project wi
 This can be advantegeous during optimization but leads to longer compilation times (especially, as the compilation of a single compilation unit is hard to parallelize). 
 A change in the library requires a recompilation of the dependent project.
 
+> Why are most optimizations performed at the scope of a compilation unit?
+
 If separated, the compilation of the library and the project happens in different compilation units, requiring a *linking* step after the compilation of the project.
 A recompilation of the project is only required if the interface of the library changes. 
 If project-wide *compiler flags* change, a recompilation of the library might be required, too.
+
+> What is an example for a "project-wide compiler flag" which requires recompilation of dependent projects?
 
 ### Distribution
 For a single file, in the simplest case, simply this file is deployed. If the library itself has specific compilation options or dependencies, additional configuration instructions are typically required.
@@ -92,8 +96,17 @@ If separated, the distribution of the compiled library togehter with the header 
 This requires a distribution of the compiled versions for all targeted platforms and configurations.
 Additionally, the sources of the library together with build instructions can be distributed.
 
+> Can different compilers/versions be used for building the distributed  libraries and later in the dependent projects?
+
+### Template interfaces
+If a library interface includes templates (or is a pure template library), the full implementation hast to be distributed (*header-only*).
+
+> Why is *header-only* distribution required for template interfaces?
+
 ## Build toolchain
 The compilation is performed using a *toolchain* which typically includes a *compiler*, *standard libraries*, *linker*, and *runtime libraries* for the targeted system.
+
+> Examples for each of those?
 
 ### Invokation
 The full set of flags when compiling our library can be revealed with
@@ -105,6 +118,8 @@ which will list the default settings assuming the host configuration as compilat
 clang++ -### grid.o main.cpp 
 ```
 which triggers a compilation step followed by a linker step.
+
+> Some examples for compiler flags?
 
 ### Cross compilation
 Targeting a specific system and architecture which is supported by the available toolchain can look like
@@ -164,21 +179,22 @@ double *grid_at( GridType *grid, int x, int y) {
 which is the starting point for the following translation.
 Note that the order of `#include`s has consequences on the arragement of this final code document.
 
-Possible errors during the preprocessing phase are:
-- "file not found" if includes are not found in the lookup mechanism of the toolchain
-- silent errors in macros, which manifest later during translation
+> Possible errors during the preprocessing phase are?
+> - "file not found" if includes are not found in the lookup mechanism of the toolchain
+> - silent errors in macros, which manifest later during translation
 
 ### Translation
-The translation process is performed according to the defined language standard. Using the C++17 standard for the translation looks like
-```
+The translation process is performed according to the selected language standard. Using the C++17 standard for the translation looks like
+```bash
 clang++ -std=c++17 grid.cpp -c
+clang++ -std=c++17 -stdlib=libc++ grid.cpp -c # select stdlib
 ```
 As a intermediate (non-optimized) result of this translation, clang uses an intermediate represenation for all C-like languages called *abstract syntax tree* (AST).
 This AST can be inspected (and filtered) for our `grid_at` function with
 ```
 clang-check -extra-arg=-std=c++17 -ast-dump --ast-dump-filter=grid_at grid.cpp --
 ```
-which outputs a hierarchy of AST-nodes which closely resembles both the 'original code' but also the language standard. 
+which outputs a hierarchy of AST-nodes which closely resembles both the original source code but also the language standard. 
 Each node represents an abstract language construct, for example the declaration of `grid_at` appears as
 ```
 FunctionDecl 0x11c1b10 <srcloc>  grid_at 'double *(GridType *, int, int)'
@@ -187,7 +203,7 @@ FunctionDecl 0x11c1b10 <srcloc>  grid_at 'double *(GridType *, int, int)'
 `-ParmVarDecl 0x11c19e8 <srcloc> y 'int'
 ```
 
-for the `grid_at` function allowing a direct mapping to names and positions in the original source files.
+which allows a direct mapping to names and positions in the original source files.
 
 If the code documents satisfies the rules imposed by the language standard (i.e., a AST was successfully created), further stages of the translation, which are influenced by compiler flags produce the final output format. 
 This final output object must comply to the language standard w.r.t. to the visibility of internal symbols to other objects, and referencing of external symbols used internally.
@@ -207,6 +223,8 @@ which reveals information about the symbol table of the object:
 We can see that the names of the functions are mangled using some scheme which involves a prefix `_` and additional prefixes indicating the number of characters of a function name `Z9grid_init` or a function paramter `P4Grid` and special names for fundamental types like `i` for `int`.
 Note that the mangling schemes are not part of the C++ standard, but mostly the *Itanium C++ ABI* is used, enabling compatibility between objects created by different compilers.
 
+> Examples for what else is defined in the ABI?
+
 Demangling of the symbols is possible using
 ```
 nm -C grid.o
@@ -220,7 +238,6 @@ which results in
                  U free
 ```
 
-Typical errors during translation are essentially all possible errors  excluding errors aparent already during preprocessing or which are only detectable during linking.
 Extensive compiler options exist to granularly control the reporting of error and warnings.
 Enabling all errors and also promote warnings to errors can be achieved with
 ```
@@ -228,12 +245,15 @@ clang++ -Werror -Weverything grid.cpp -c
 ```
 which is not a useful default, but is a good starting point as it reports the more granular flags responsible for the individual error groupings.
 
+> Typical error during compilation?
+>
+> Which types of errors cannot be covered?
+
 ## Linking
 Linking is performed after all required compilation units for an application are available in some form (object files, libraries). 
 
-Typical errors during linking are 
-- unresolved symbols, i.e., referenced symbols are not found in any of the objects participating in linking
-- multiple definitions of symbols, i.e., a symbol cannot be unabiguously resolved 
+> Typical errors during linking are ?
+
 
 The result of the linking step is a *dynamically* or *statically* linked application.
 For example, 
@@ -241,9 +261,9 @@ For example,
 clang++ grid.o main.cpp 
 ```
 produces a dynamic executable `a.out` (default filename) which requires a suitable configuration (i.e., set of installed libraries of specific versions) at run time.
-The `grid.o` object file is statically linked into the executable and therefore does not need to be installed on the system. 
-At run time, the dynamic resolution of linked libraries can be listed/tested using e.g., 
-```
+The `grid.o` object file is statically linked into the executable and (therefore does not need to be installed on the system). 
+At run time, the dynamic resolution of linked libraries can be tested using 
+```bash
 ldd main
 ```
 which shows something like
@@ -290,16 +310,19 @@ cmake -L .. # create Makefiles and list variables
 make VERBOSE=1 # use CMake generated Unix Makefiles
 ```
 
+> Is a CMake configuration automatically portable?
+
 ## Coding Style
 Formatting source code is only important if humans have to look at the code
 (Even auto-generated code might be looked at by humans, e.g., to debug an error).
 As many flavours of coding-styles and formatting exist, bigger projects restrict this freedom and settle with a set of rules for formatting and naming. 
 
+> Examples for rules defined through a coding style?
 
 ### Formatting
 To avoid manual code-rearrangement and to guarantee consistent style a very prominent tool is *clang-format*. 
 To dump the default formatting settings for the *llvm* style this can be used
-```
+```bash
 clang-format -style=llvm -dump-config > .clang-format
 ```
 Applying the formatting to a file looks like
@@ -309,13 +332,16 @@ clang-format grid.h # prints formatted file to console
 where the dominant adoptions are whitespace/newline arrangements.
 Note that this is a lightweight standalone tool, e.g., it does not try to compile the code.
 
+> Could clang-format also be used for refactoring tasks?
+
 ### Linting
 To ensure a consistent coding style going further than bare-formatting, a 'linter' can be used.
 Linting tries to capture constructs in the code which are 'not-wanted' for some reason, but happily compile, as they comply to the language standard. 
 These reasons can be
 - availability of a preferred alternative
 - error-proneness of a construct
-- custom guidelines 
+- custom guidelines (style or usage)
+
 
 A popular linter based on clang is *clang-tidy* which is based on clang to analyze the source code. 
 To dump the active configuration of checks which are performed one can use
@@ -340,13 +366,15 @@ if the check 'cppcoreguidelines-no-malloc' is enabled.
 ### IDE integration
 Both tools clang-format and clang-tidy are integrated into the language server *clangd* which is available for many IDEs via a plugin.
 
+> Examples for problems not detectable by the linter?
+
 ## Sanitizers
 Many error-prone situations can be detected using linting. 
 But many unwanted situations can only be detected during runtime, i.e., for a specific execution.
-To capture such unwanted situations, clang (and gcc) offer *sanitizers* which can be enabled at compile time produce a *instrumented* binary which then reports problems and associated debug information during run time.
+To capture such unwanted situations, clang (and gcc) offer *sanitizers* which can be enabled at compile time produce an *instrumented* binary which then reports problems and associated debug information during run time.
 Enabling sanitizers typically leads to a slowdown and increased memory consumption.
 
-
+> Major difference between compile time (linting) and run time (sanitizers) checks?
 
 ### Memory errors
 The AddressSanitizer (ASAN) detects problems related to memory access like *out-of-bounds* access and also contains a
@@ -439,41 +467,88 @@ instructions from two different threads
 - at least one instruction is modifying value,
 - and no synchronization rule is present.
 
+For example in
+```pmans
+/// ...
+  GridType grid;
+  grid_init(&grid);
+  auto /*f*/ write_grid /*x*/ = [&grid]() {
+    /*b*/ *grid_at(&grid, 0, 0) /*x*/ = 5;
+  };
+  std::thread one(/*f*/ write_grid /*x*/);
+  std::thread two(/*f*/ write_grid /*x*/);
+  one.join();
+  two.join();
+  grid_free(&grid);
+/// ...
+```
+the two threads access (load and store) the value at index `0,0` potentially at the same time, and no synchronization is defined.
+Using the ThreadSanitizer (TSAN) `-fsanitize=thread` detects such data races during execution and may output something like
+```
+==================
+WARNING: ThreadSanitizer: data race (pid=25119)
+  Write of size 8 at 0x7b1800000000 by thread T2:
+    #0 .../main_tsan.cpp:12:27 (main_tsan+0x4b6c34)
+    #1 .../type_traits:3539:1 (main_tsan+0x4b6b20)
+    #2 .../thread:273:5 (main_tsan+0x4b6a48)
+    #3 .../thread:284:5 (main_tsan+0x4b6549)
 
+  Previous write of size 8 at 0x7b1800000000 by thread T1:
+    #0 .../main_tsan.cpp:12:27 (main_tsan+0x4b6c34)
+    #1 .../type_traits:3539:1 (main_tsan+0x4b6b20)
+    #2 .../thread:273:5 (main_tsan+0x4b6a48)
+    #3 .../thread:284:5 (main_tsan+0x4b6549)
+...
+```
 
-# Tasks
-- provide main.cpps' which contain 
-    - one ASAN error: out of bound, mem leak
-    - one MSAN error: use of unitialized value
-    - one TSAN error: two threads sweeping over grid 
-- submit 
+A similar situation when using *OpenMP* looks like
+```pmans
+/// ...
+  omp_set_num_threads(3); 
+#pragma omp parallel
+  {
+    /*b*/ *grid_at(&grid, 0,0) /*x*/ = 5; 
+  }
+  grid_free(&grid);
+/// ...
+```
+which might log something like
+```
+==================
+WARNING: ThreadSanitizer: data race (pid=24952)
+  Write of size 8 at 0x7b1800000000 by thread T2:
+    #0 .omp_outlined._debug__ .../main_tsan.cpp:24:28 (main_tsan+0x4b57de)
+    #1 .omp_outlined. .../main_tsan.cpp:22:3 (main_tsan+0x4b5858)
+    #2 __kmp_invoke_microtask <null> (libomp.so+0xab032)
+    #3 main .../main_tsan.cpp:21:1 (main_tsan+0x4b573c)
 
-- cmake: add sanitizer builds options
-    - cmake -D ASAN:BOOL=ON
-- git: submit via git repo: email public repo cpp@iue.tuwien.ac.at
-- code: add grid_resize(Grid*, value); which resizes the grid 
-- 
-
-- create a git repo, make a 
-- use clang-format
-- configure access to a system/IDE with clang10 and clangd (or clang-tidy and clang format)
-- configure a personal git repo for this lecture
-- create a branch ''
-- copy/clone source of this example
-- setup own git repo 
-- put things there
--  
-- setup tasks, check details automatically
-- have clang10 ready for c++17 including clang-format
-- results: format project 
-- snippet:  
-- clang-format
-- clang-tidy
-- not control or automatically controllable
-- adopt grid to use constructor and destructor
-- submit formatted code using .clang-format
-- next item: exceptions
-
+  Previous write of size 8 at 0x7b1800000000 by thread T1:
+    #0 .omp_outlined._debug__ .../main_tsan.cpp:24:28 (main_tsan+0x4b57de)
+    #1 .omp_outlined. .../main_tsan.cpp:22:3 (main_tsan+0x4b5858)
+    #2 __kmp_invoke_microtask <null> (libomp.so+0xab032)
+    #3 main .../main_tsan.cpp:21:1 (main_tsan+0x4b573c)
+...
+```
 
 ## Links
-[AddressSanitizer Overview](https://github.com/google/sanitizers/wiki/AddressSanitizerComparisonOfMemoryTools)
+[CMake](https://cmake.org/cmake/help/v3.0/)
+
+[Clang](https://releases.llvm.org/10.0.0/tools/clang/docs/ReleaseNotes.html)
+
+[LLVM](https://llvm.org/)
+
+[Sanitizers](https://github.com/google/sanitizers)
+
+# Exercise EX0
+
+## 1. Make sure you have a working environment configured with access to
+- git 
+- cmake >= 3.0
+- compiler/linker for C++17
+- recommended: clangd (clang-format, clang-tidy)
+
+### You can use the preconfigured docker-container (Theia-IDE + clang/LLVM) provided here 
+https://github.com/cppitems/docker
+
+## 2. Submit the source code for EX0
+https://github.com/cppitems/cppitems/tree/master/items/001/

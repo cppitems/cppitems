@@ -5,7 +5,8 @@
 int main() {
   GridType grid;
   grid_init(&grid);
-  // threads
+
+  //   // threads
   std::mutex write_mutex;
   auto write_grid = [&grid, &write_mutex]() {
     const std::lock_guard<std::mutex> lock(write_mutex);
@@ -16,12 +17,26 @@ int main() {
   one.join();
   two.join();
 
-  // omp
-  omp_set_num_threads(3); 
+  // omp for
+  omp_set_num_threads(2;
 #pragma omp parallel
   {
-    #pragma omp critical
-    { *grid_at(&grid, 0,0) = 5; }
+#pragma omp critical
+    { *grid_at(&grid, 0, 0) = 5; }
+  }
+
+// omp task
+#pragma omp parallel
+  {
+#pragma omp single
+    {
+#pragma omp task
+#pragma omp critical
+      { *grid_at(&grid, 0, 0) = 5; }
+#pragma omp task
+#pragma omp critical
+      { *grid_at(&grid, 0, 0) = 5; }
+    }
   }
   grid_free(&grid);
 
