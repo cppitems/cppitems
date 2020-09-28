@@ -1,6 +1,6 @@
 5 // item status
-# Source code organization, compilation toolchain, distribution options, coding style, linting, 
-This item briefly discusses important organizional options for a C++ project/library and steps through the phases of configuring and building a project using command line tools on a linux system and tools of the *LLVM* compiler infrastructure.
+# Source code organization, compilation toolchain, distribution options, coding style, linting, sanitizers
+This item briefly discusses important organizational options for a C++ project/library and steps through the phases of configuring and building a project using command line tools on a linux system and tools of the *LLVM* compiler infrastructure.
 
 ## Example library
 This simplistic example is an interface to a `Grid` *structure* which holds data representing a 2D regular grid.
@@ -64,23 +64,26 @@ The `grid_at` function is used to write to the grid.
 
 Note that beside the namespace operator `::` for the wrapped `calloc` and `free` this library only uses C language features. This is on purpose, as we will discuss C++ language features step-by-step in later items.
 
+> Which C++ language features are you missing? 
+
+
 ## File organization
 The library source code is organized using *header* and *source* files.
-It could also have been placed in a single header file.
+It could also have been placed in a single (header) file.
 Let's discuss some consequences triggered by these two options.
 
 ### Redundancy
 If separated, a portion of the sourcecode is redundant (the function declarations).
-In a single file, functions defintions are sufficient, removing this redundancy.
+In a single file, functions defintion are sufficient, removing this redundancy.
 
 ### Dependent projects
 For a single file, the full implementation is included in a dependent project with the consequence that it is compiled togehther with the project in a single *compilation unit*. 
-This can be advantegeous during *optimization* but leads to longer compilation times (especially, as the compilation of a single compilation unit is hard to parallelize). 
+This can be advantegeous during optimization but leads to longer compilation times (especially, as the compilation of a single compilation unit is hard to parallelize). 
 A change in the library requires a recompilation of the dependent project.
 
 If separated, the compilation of the library and the project happens in different compilation units, requiring a *linking* step after the compilation of the project.
 A recompilation of the project is only required if the interface of the library changes. 
-If project-wide *compiler flags* change, a recompilation of the library is required.
+If project-wide *compiler flags* change, a recompilation of the library might be required, too.
 
 ### Distribution
 For a single file, in the simplest case, simply this file is deployed. If the library itself has specific compilation options or dependencies, additional configuration instructions are typically required.
