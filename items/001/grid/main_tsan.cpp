@@ -18,7 +18,7 @@ int main() {
   two.join();
 
   // omp for
-  omp_set_num_threads(2;
+  omp_set_num_threads(2);
 #pragma omp parallel
   {
 #pragma omp critical

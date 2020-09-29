@@ -9,7 +9,7 @@ set(CMAKE_CXX_FLAGS_ASAN "-fsanitize=address -fsanitize-address-use-after-scope 
 set(CMAKE_EXE_LINKER_FLAGS_ASAN "-fsanitize=address" CACHE STRING "")
 set(CMAKE_CXX_FLAGS_TSAN "-fsanitize=thread -fno-omit-frame-pointer -g" CACHE STRING "")
 set(CMAKE_EXE_LINKER_FLAGS_TSAN "-fsanitize=thread" CACHE STRING "")
-set(CMAKE_CXX_FLAGS_MSAN "-fsanitize=memory -fsanitize-memory-track-origins -fno-omit-frame-pointer -g -O3" CACHE STRING "")
+set(CMAKE_CXX_FLAGS_MSAN "-fsanitize=memory -fsanitize-memory-track-origins -fno-omit-frame-pointer -g" CACHE STRING "")
 set(CMAKE_EXE_LINKER_FLAGS_MSAN "-fsanitize=memory" CACHE STRING "")
 
 project(001 LANGUAGES CXX)
