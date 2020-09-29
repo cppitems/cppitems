@@ -1,5 +1,5 @@
 1 // item status
-# L1: Source code organization, compilation toolchain, distribution options, coding style, linting, sanitizers
+# Source code organization, compilation toolchain, distribution options, coding style, linting, sanitizers
 This item briefly discusses important organizational options for a C++ project/library and steps through the phases of configuring and building a project using command line tools on a linux system and tools of the *LLVM* compiler infrastructure.
 
 ## Example library
