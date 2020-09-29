@@ -62,7 +62,7 @@ int main() {
 where a sweet over the grid is performed using a nested for-loop.
 The `grid_at` function is used to write to the grid.
 
-Note that beside the namespace operator `::` for the wrapped `calloc` and `free` this library only uses C language features. This is on purpose, as we will discuss C++ language features step-by-step in later items.
+Note that beside the namespace operator `::` for the wrapped `calloc` and `free` this library only uses C language features.
 
 > Which C++ language features are you missing? 
 
@@ -73,12 +73,12 @@ It could also have been placed in a single (header) file.
 Let's discuss some consequences triggered by these two options.
 
 ### Redundancy
-If separated, a portion of the sourcecode is redundant (the function declarations).
-In a single file, functions defintion are sufficient, removing this redundancy.
+If separated, a portion of the source code is redundant (the function declarations).
+In a single file, functions definition are sufficient, removing this redundancy.
 
 ### Dependent projects
-For a single file, the full implementation is included in a dependent project with the consequence that it is compiled togehther with the project in a single *compilation unit*. 
-This can be advantegeous during optimization but leads to longer compilation times (especially, as the compilation of a single compilation unit is hard to parallelize). 
+For a single file, the full implementation is included in a dependent project with the consequence that it is compiled together with the project in a single *compilation unit*. 
+This can be advantageous during optimization but leads to longer compilation times (especially, as the compilation of a single compilation unit is hard to parallelize). 
 A change in the library requires a recompilation of the dependent project.
 
 > Why are most optimizations performed at the scope of a compilation unit?
@@ -92,7 +92,7 @@ If project-wide *compiler flags* change, a recompilation of the library might be
 ### Distribution
 For a single file, in the simplest case, simply this file is deployed. If the library itself has specific compilation options or dependencies, additional configuration instructions are typically required.
 
-If separated, the distribution of the compiled library togehter with the header files is possible. 
+If separated, the distribution of the compiled library together with the header files is possible. 
 This requires a distribution of the compiled versions for all targeted platforms and configurations.
 Additionally, the sources of the library together with build instructions can be distributed.
 
@@ -108,7 +108,7 @@ The compilation is performed using a *toolchain* which typically includes a *com
 
 > Examples for each of those?
 
-### Invokation
+### Invocation
 The full set of flags when compiling our library can be revealed with
 ```
 clang++ -### grid.cpp -c 
@@ -131,7 +131,7 @@ which builds the application for the `wasm32` architecture with an `unkown` vend
 
 ## Compilation process
 
-The compilation, which transformes the source files into the specified final format proceeds in phases. 
+The compilation, which transforms the source files into the specified final format proceeds in phases. 
 To reveal some details about the stages of compilation for our library one could use
 ```
 clang++ -ccc-print-phases grid.cpp -c 
@@ -147,7 +147,7 @@ which will print something like
 which tells us that it starts with the `grid.cpp` file and final output will be an *object* file.
 
 ### Preprocessor
-After the initial parsing of the individual sources (charater mapping, comment stripping, line unwrapping, ... ) the preprocessor is the first 'real' action on the code: all actions defined for preprocessor *directives* like `#include` and `#define` are performed which *always* results in a *single* code document which can be revealed using
+After the initial parsing of the individual sources (character mapping, comment stripping, line unwrapping, ... ) the preprocessor is the first 'real' action on the code: all actions defined for preprocessor *directives* like `#include` and `#define` are performed which *always* results in a *single* code document which can be revealed using
 ```
 clang++ -E grid.cpp -c
 ```
@@ -177,7 +177,7 @@ double *grid_at( GridType *grid, int x, int y) {
 }
 ```
 which is the starting point for the following translation.
-Note that the order of `#include`s has consequences on the arragement of this final code document.
+Note that the order of `#include`s has consequences on the arrangement of this final code document.
 
 > Possible errors during the preprocessing phase are?
 > - "file not found" if includes are not found in the lookup mechanism of the toolchain
@@ -189,7 +189,7 @@ The translation process is performed according to the selected language standard
 clang++ -std=c++17 grid.cpp -c
 clang++ -std=c++17 -stdlib=libc++ grid.cpp -c # select stdlib
 ```
-As a intermediate (non-optimized) result of this translation, clang uses an intermediate represenation for all C-like languages called *abstract syntax tree* (AST).
+As a intermediate (non-optimized) result of this translation, clang uses an intermediate representation for all C-like languages called *abstract syntax tree* (AST).
 This AST can be inspected (and filtered) for our `grid_at` function with
 ```
 clang-check -extra-arg=-std=c++17 -ast-dump --ast-dump-filter=grid_at grid.cpp --
@@ -220,7 +220,7 @@ which reveals information about the symbol table of the object:
                  U calloc
                  U free
 ```
-We can see that the names of the functions are mangled using some scheme which involves a prefix `_` and additional prefixes indicating the number of characters of a function name `Z9grid_init` or a function paramter `P4Grid` and special names for fundamental types like `i` for `int`.
+We can see that the names of the functions are mangled using some scheme which involves a prefix `_` and additional prefixes indicating the number of characters of a function name `Z9grid_init` or a function parameter `P4Grid` and special names for fundamental types like `i` for `int`.
 Note that the mangling schemes are not part of the C++ standard, but mostly the *Itanium C++ ABI* is used, enabling compatibility between objects created by different compilers.
 
 > Examples for what else is defined in the ABI?
@@ -290,8 +290,8 @@ libgridlib.so => /home/project/cppitems/items/001/grid/libgridlib.so (0x00007fa5
 ```
 
 ## Build tools
-Even for small projects the creation and maintainance of the instructions for the supported toolchains required to build the targets of project can be complex. 
-The *CMake* tool is used for most openly available C++-projects as a cross-platform generator for project and depencency configurations.  
+Even for small projects the creation and maintenance of the instructions for the supported toolchains required to build the targets of project can be complex. 
+The *CMake* tool is used for most openly available C++-projects as a cross-platform generator for project and dependency configurations.  
 
 A minimal platform independent *CMakeLists.txt* (default filename) configuration for our library and application could look like:
 ```
@@ -315,7 +315,7 @@ make VERBOSE=1 # use CMake generated Unix Makefiles
 ## Coding Style
 Formatting source code is only important if humans have to look at the code
 (Even auto-generated code might be looked at by humans, e.g., to debug an error).
-As many flavours of coding-styles and formatting exist, bigger projects restrict this freedom and settle with a set of rules for formatting and naming. 
+As many flavors of coding-styles and formatting exist, bigger projects restrict this freedom and settle with a set of rules for formatting and naming. 
 
 > Examples for rules defined through a coding style?
 
@@ -329,7 +329,7 @@ Applying the formatting to a file looks like
 ```bash
 clang-format grid.h # prints formatted file to console
 ```
-where the dominant adoptions are whitespace/newline arrangements.
+where the dominant adoptions are white space/newline arrangements.
 Note that this is a lightweight standalone tool, e.g., it does not try to compile the code.
 
 > Could clang-format also be used for refactoring tasks?
@@ -446,7 +446,7 @@ which outputs something like
                           ^
 ```
 In contrast, if the usage happens in a different context like at (2), the compiler cannot help.
-MemorySanitizer (MSAN), which can be enabled using the `-fsanitize=memory` compiler flag can track the use of uninitialized values and warn if they are first *read*, which happens at (3) and means that the program behaviour is influenced.
+MemorySanitizer (MSAN), which can be enabled using the `-fsanitize=memory` compiler flag can track the use of uninitialized values and warn if they are first *read*, which happens at (3) and means that the program behavior is influenced.
 The output of MSAN might look like
 ```
 ==10149==WARNING: MemorySanitizer: use-of-uninitialized-value

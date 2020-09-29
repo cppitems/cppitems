@@ -1,4 +1,4 @@
-// 360.251 Introductory Exercise 'EX0':
+// 360.251 Exercise 'EX0':
 // 1. implement a class 'Vector' in 'vector.h' (and 'vector.cpp' if
 // you like) which complies with the following usage and passes the 'tests'
 // (which are just console logs).
@@ -16,7 +16,7 @@
 
 int main() {
 
-  auto vec = Vector(1000, 10); // ctor of length '1000', init with '10'
+  auto vec = Vector(1000, 10); // ctor: length '1000', init with '10'
 
   {                                      // check size
     Vector::size_type size = vec.size(); // nested type
@@ -56,7 +56,7 @@ int main() {
   { // copy ctor
     auto other = Vector(vec);
     if (vec.data() == other.data()) {
-      std::cout << "copy ctor: data shoudl not alias" << std::endl;
+      std::cout << "copy ctor: data should not alias" << std::endl;
     }
     if (vec.sum() != other.sum()) {
       std::cout << "copy ctor: sums dont match" << std::endl;

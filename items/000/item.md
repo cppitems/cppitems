@@ -25,7 +25,7 @@
 | Thu	14.01.2021|	9-11pm |	L11, last lecture|
 
 # Distance Learning
-The lectures (Thursdays 9-11am) and "1on1" discussions of the exercises will be realized using zoom.us video converences.
+The lectures (Thursdays 9-11am) and "1on1" discussions of the exercises will be realized using zoom.us video conferences.
 
 # Communication
 Important announcement will be made via the TISS-system. 
