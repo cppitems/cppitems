@@ -54,3 +54,23 @@ To reduce organizational matters, the time slots for the 1on1 exercise discussio
 
 # Overall Grade
 The final grade is determined by the points achieved in EX1, EX2, and EX3; there is no final examination.
+
+# Literature/online resources
+
+[1] https://en.cppreference.com/w/cpp/links
+
+[2] https://en.cppreference.com/w/cpp/keyword/inline
+
+[3] **Online compiler** Matt Godbolt: https://godbolt.org/
+
+[4] **Online compiler** Andreas Fertig: https://cppinsights.io/
+
+[5] **Online guidelines** Herb Sutter: http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines
+
+[6] **Catalog of short videos** Jason Turner: https://www.youtube.com/watch?v=EJtqHLvAIZE&list=PLs3KjaCtOwSZ2tbuV1hx8Xz-rFZTan2J1
+
+[7] **Book** Scott Meyers: Effective Modern C++ (2014)
+
+[8] **Book** Bartłomiej Filipek: C++17 In Detail (2019)
+
+[9] **Book** Stanley B. Lippman: C++ Primer (5th Edition, 2012)

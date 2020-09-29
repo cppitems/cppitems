@@ -538,17 +538,3 @@ WARNING: ThreadSanitizer: data race (pid=24952)
 [LLVM](https://llvm.org/)
 
 [Sanitizers](https://github.com/google/sanitizers)
-
-# Exercise EX0
-
-## 1. Make sure you have a working environment configured with access to
-- git 
-- cmake >= 3.0
-- compiler/linker for C++17
-- recommended: clangd (clang-format, clang-tidy)
-
-### You can use the preconfigured docker-container (Theia-IDE + clang/LLVM) provided here 
-https://github.com/cppitems/docker
-
-## 2. Submit the source code for EX0
-https://github.com/cppitems/cppitems/tree/master/items/001/
