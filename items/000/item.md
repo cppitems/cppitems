@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | Thu 08.10.2020 |	9-11am | L0, handout EX0 | 
 | Thu 15.10.2020 | 9-11am |	L1, discuss EX0 problems |
-| **Mo	15.10.2020**|	**4pm**|	EX0	submission **deadline** |
+| **Mo	19.10.2020**|	**4pm**|	EX0	submission **deadline** |
 | Thu	22.10.2020|	9-11am |	L2, handout EX1.1 |
 | Thu	29.10.2020|	9-11am |L3, handout EX1.2|
 | Thu	05.11.2020|	9-11am |	L4, handout EX1.3|

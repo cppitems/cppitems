@@ -62,8 +62,8 @@ int main() {
       std::cout << "copy assignment: sums dont match" << std::endl;
     }
   }
-  { // copy ctor
-    /*b*/ auto other = Vector(vec) /*x*/;
+  { // copy constructor
+    /*b*/ Vector other(vec) /*x*/;
     if (vec.data() == other.data()) {
       std::cout << "copy ctor: data should not alias" << std::endl;
     }

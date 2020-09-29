@@ -467,6 +467,8 @@ instructions from two different threads
 - at least one instruction is modifying value,
 - and no synchronization rule is present.
 
+> What is a race condition?
+
 For example in
 ```pmans
 /// ...
@@ -512,7 +514,7 @@ A similar situation when using *OpenMP* looks like
   grid_free(&grid);
 /// ...
 ```
-which might log something like
+which might look something like
 ```
 ==================
 WARNING: ThreadSanitizer: data race (pid=24952)

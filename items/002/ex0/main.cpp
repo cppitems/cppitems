@@ -45,7 +45,7 @@ int main() {
   }
 
   { // copy assignment
-    auto other = vec;
+    Vector other = Vector(1000,10);
     if (vec.data() == other.data()) {
       std::cout << "copy assignment: data should not alias" << std::endl;
     }
@@ -53,13 +53,13 @@ int main() {
       std::cout << "copy assignment: sums dont match" << std::endl;
     }
   }
-  { // copy ctor
-    auto other = Vector(vec);
+  { // copy constructor
+    Vector other(vec);
     if (vec.data() == other.data()) {
-      std::cout << "copy ctor: data should not alias" << std::endl;
+      std::cout << "copy constructor: data should not alias" << std::endl;
     }
     if (vec.sum() != other.sum()) {
-      std::cout << "copy ctor: sums dont match" << std::endl;
+      std::cout << "copy constructor: sums dont match" << std::endl;
     }
   }
   return 0;
