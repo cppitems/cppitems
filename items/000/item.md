@@ -1,6 +1,6 @@
-1
+1 // item status
 # Lecture organization
-
+ 
 ## Schedule:
 | Day  | Hour | Description  | 
 |---|---|---|---|---|

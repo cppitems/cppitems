@@ -1,3 +1,4 @@
+1 // item status
 # Exercise EX0
 
 ## 1. Make sure you have a working environment configured with access to
