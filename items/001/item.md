@@ -3,9 +3,9 @@
 This item briefly discusses important organizational options for a C++ project/library and steps through the phases of configuring and building a project using command line tools on a linux system and tools of the *LLVM* compiler infrastructure.
 
 ## Example library
-This simplistic example is an interface to a `Grid` *structure* which holds data representing a 2D regular grid.
-A `grid_init` function allocates the grid with the desired dimension and performs the initialization.
-To access the grid at a coordinate, `grid_at` returns a *pointer* to the respective item in the grid. 
+This simple example is an interface to a *structure* named `Grid`  which holds data representing a 2D regular grid.
+The function `grid_init` *allocates* the grid with the desired dimension and performs the initialization.
+To access the grid at a certain coordinate, `grid_at` returns a *pointer* to the respective item in the grid. 
 Finally, `grid_free` is used to *deallocate* the memory and reset the structure. So the *header* file looks like this: 
 
 ```pmans 
@@ -22,7 +22,7 @@ void /*b9*/ grid_free(/*f9*/ GridType *grid);
 double */*b7*/ grid_at(/*f9*/ GridType *grid, size_t x, size_t y);
 ```
 
-and the associated *source* file which *defines* the interface functions looks like
+and the associated *source* file which defines the interface functions is:
 ```pmans
 /* file: grid.cpp */ /* compile: clang++ -c grid.cpp */
 #include <cstdlib> // std::calloc, std::free
@@ -42,7 +42,7 @@ double */*b7*/ grid_at(/*f9*/ GridType *grid, int x, int y) {
 }
 ```
 
- A usage of this interface can then look like
+ Using this *structure* might look like the following:
 
  ```pmans
 /* file: main.cpp */ /* compile: clang++  grid.o main.cpp -o main */
@@ -59,10 +59,10 @@ int main() {
   return 0;
 }
  ```
-where a sweet over the grid is performed using a nested for-loop.
+where a sweep over the entire grid is performed using a nested for-loop.
 The `grid_at` function is used to write to the grid.
 
-Note that beside the namespace operator `::` for the wrapped `calloc` and `free` this library only uses C language features.
+Note that this library only uses C language features, apart from the namespace operator `::` for the standard library functions `calloc` and `free`.
 
 > Which C++ language features are you missing? 
 
@@ -77,20 +77,20 @@ If separated, a portion of the source code is redundant (the function declaratio
 In a single file, functions definition are sufficient, removing this redundancy.
 
 ### Dependent projects
-For a single file, the full implementation is included in a dependent project with the consequence that it is compiled together with the project in a single *compilation unit*. 
+For a single file, the full implementation is included in the *source* file (*main.cpp*). Therefore, all the code is compiled together with the *source* code in a single *compilation unit*. 
 This can be advantageous during optimization but leads to longer compilation times (especially, as the compilation of a single compilation unit is hard to parallelize). 
-A change in the library requires a recompilation of the dependent project.
+A change in the library requires a recompilation of the whole *source* file including the library.
 
 > Why are most optimizations performed at the scope of a compilation unit?
 
 If separated, the compilation of the library and the project happens in different compilation units, requiring a *linking* step after the compilation of the project.
-A recompilation of the project is only required if the interface of the library changes. 
-If project-wide *compiler flags* change, a recompilation of the library might be required, too.
+Only the *compilation unit* which has changed needs to be recompiled and can then just be *linked* with the other *compilation units*. *Linking* is much faster than *compiling*, so this saves a lot of time in large projects.
+If project-wide *compiler flags* change, a recompilation of all *compilation units* might be necessary.
 
 > What is an example for a "project-wide compiler flag" which requires recompilation of dependent projects?
 
 ### Distribution
-For a single file, in the simplest case, simply this file is deployed. If the library itself has specific compilation options or dependencies, additional configuration instructions are typically required.
+For a single file, in the simplest case, simply this file is distributed. If the library itself has specific compilation options or dependencies, additional configuration instructions are typically provided with the source code.
 
 If separated, the distribution of the compiled library together with the header files is possible. 
 This requires a distribution of the compiled versions for all targeted platforms and configurations.
@@ -122,7 +122,7 @@ which triggers a compilation step followed by a linker step.
 > Some examples for compiler flags?
 
 ### Cross compilation
-Targeting a specific system and architecture which is supported by the available toolchain can look like
+Targeting a specific system and architecture which is supported by the available toolchain can look like this:
 ```
 clang++ -### --target=wasm32-unknown-wasi --sysroot=... grid.cpp -c
 clang++ -### --target=wasm32-unknown-wasi --sysroot=... grid.o main.cpp 
@@ -180,8 +180,6 @@ which is the starting point for the following translation.
 Note that the order of `#include`s has consequences on the arrangement of this final code document.
 
 > Possible errors during the preprocessing phase are?
-> - "file not found" if includes are not found in the lookup mechanism of the toolchain
-> - silent errors in macros, which manifest later during translation
 
 ### Translation
 The translation process is performed according to the selected language standard. Using the C++17 standard for the translation looks like
@@ -223,6 +221,7 @@ which reveals information about the symbol table of the object:
 We can see that the names of the functions are mangled using some scheme which involves a prefix `_` and additional prefixes indicating the number of characters of a function name `Z9grid_init` or a function parameter `P4Grid` and special names for fundamental types like `i` for `int`.
 Note that the mangling schemes are not part of the C++ standard, but mostly the *Itanium C++ ABI* is used, enabling compatibility between objects created by different compilers.
 
+> Why are names even mangled?
 > Examples for what else is defined in the ABI?
 
 Demangling of the symbols is possible using
@@ -250,7 +249,7 @@ which is not a useful default, but is a good starting point as it reports the mo
 > Which types of errors cannot be covered?
 
 ## Linking
-Linking is performed after all required compilation units for an application are available in some form (object files, libraries). 
+Linking is performed after all required compilation units for an application are available as object files. 
 
 > Typical errors during linking are ?
 
@@ -260,7 +259,7 @@ For example,
 ```
 clang++ grid.o main.cpp 
 ```
-produces a dynamic executable `a.out` (default filename) which requires a suitable configuration (i.e., set of installed libraries of specific versions) at run time.
+produces a dynamic executable `a.out` (default filename) which requires a suitable configuration (i.e., set of installed libraries of specific versions) at runtime.
 The `grid.o` object file is statically linked into the executable and (therefore does not need to be installed on the system). 
 At run time, the dynamic resolution of linked libraries can be tested using 
 ```bash
@@ -279,7 +278,7 @@ which reveals the resolved locations of the required libraries on the system.
 
 To convert the `grid.o` object into a shared library and perform a dynamic linking one can use
 ```
-clang++ -shared -fPIC grid.o -o libgridlib.so 
+clang++ -shared -fPIC grid.o -o libgridlib.so
 clang++ main.cpp -Wl,-rpath,/home/project/cppitems/items/001/grid libgridlib.so 
 ```
 which is also reflected with an additional line in the output of `ldd`
@@ -320,7 +319,7 @@ As many flavors of coding-styles and formatting exist, bigger projects restrict 
 > Examples for rules defined through a coding style?
 
 ### Formatting
-To avoid manual code-rearrangement and to guarantee consistent style a very prominent tool is *clang-format*. 
+To avoid manual code-rearrangement and to guarantee consistent style, formatting tools are used. A very prominent tool is *clang-format*. 
 To dump the default formatting settings for the *llvm* style this can be used
 ```bash
 clang-format -style=llvm -dump-config > .clang-format
@@ -395,7 +394,7 @@ int main() {
   return 0;
 }
 ```
-will report something like 
+will report the following for the error (1):
 ```
 ==5420==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x608000000080 ...
 
@@ -408,7 +407,7 @@ allocated by thread T0 here:
     #1 0x7f182b0c0a9a in grid_init(Grid*) .../grid.cpp:6:26
     ...
 ```
-for (1) and something like 
+and the following for error (2):
 ```
 ==5632==ERROR: LeakSanitizer: detected memory leaks
 
@@ -417,10 +416,9 @@ Direct leak of 96 byte(s) in 1 object(s) allocated from:
     #1 0x7f2fb1d11a9a in grid_init(Grid*) .../grid.cpp:6:26
     #2 0x4c5ff2 in main .../main_asan.cpp:4:3
 ```
-for (2). 
 
 
-### Reads of uninitialized values
+### Reading an uninitialized value
 If the assignment of an uninitialized value is directly visible for the compiler, a warning can be issued at compile time. 
 This is the case at (1) in
 ```pmans
