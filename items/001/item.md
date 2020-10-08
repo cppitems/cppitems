@@ -65,10 +65,10 @@ The `grid_at` function is used to write to the grid.
 Note that this library only uses C language features, apart from the *scope resolution operator* `::` for the standard library functions `calloc` and `free`.
 
 > Which C++ language features are you missing? 
->- use `class` instead of `struct`: -> only difference is the default attribute for for members and base classes
+>- use `class` instead of `struct`: -> only difference is the default attribute for members and base classes
 >
 >```pmans
->class Grid : /*b6*/ private Base {
+>class Grid : /*b7*/ private Base {
 >  /*b7*/ private size_t nx;
 >}
 >struct Grid : /*b6*/ public Base {
@@ -79,7 +79,7 @@ Note that this library only uses C language features, apart from the *scope reso
 >```pmans
 >grid/*b3*/ .at(i, j) = ...;
 >```
->- use constructor/destructor instead of `grid_init`/`grid_free` for initalization and freeing resources:
+>- use constructor/destructor instead of `grid_init`/`grid_free` for initialization and freeing resources:
 >- use `new`/`delete` instead of `malloc`/`free`
 >```pmans
 >struct Grid {
@@ -110,8 +110,8 @@ Note that this library only uses C language features, apart from the *scope reso
 >- use `auto` type deduction
 >```pmans
 >struct Grid {
->    using Ptr = /*b*/ std::shared_ptr /*x*/<Grid>;
->    Ptr static Create() { return /*b*/ std::make_shared /*x*/<Grid>(); }
+>    using /*f3*/ Ptr = /*b*/ std::shared_ptr /*x*/<Grid>;
+>    static /*f3*/ Ptr Create() { return /*b*/ std::make_shared /*x*/<Grid>(); }
 >}
 >// usage
 >auto grid = Grid::Create();
@@ -171,8 +171,8 @@ If a library interface includes templates (or is a pure template library), the f
 >```pmans
 >// library
 >template<typename T> T func(T a, T b) {...};
->// dependent project might want to use
->auto c = func</*b*/ CustomType /*x*/>(a,b); // needs full to see >function body of 'func' to compile
+>// dependent project might want to use:
+>auto c = func</*b*/ CustomType /*x*/>(a,b); // needs to see function body to compile
 >```
 >- option to avoid template interface 1: explicitly force template instantiation (and symbol creation) for some predefined types
 >- option to avoid template interface 2: publish a template-free interface; use templates only 'internally'
@@ -203,7 +203,7 @@ which triggers a compilation step followed by a linker step.
 >- `-Werror` warnings as error
 >- `-Wall` `-Weverything` warn about everything
 >-  `-ferror-limit 2` report only first two errors
->- note: compiler flags can mean differnt things for different compilers
+>- note: compiler flags can mean different things for different compilers
 >- note: compiler flags can be aliases for a group of separate flags
 
 ### Cross compilation
@@ -212,7 +212,7 @@ Targeting a specific system and architecture which is supported by the available
 clang++ -### --target=wasm32-unknown-wasi --sysroot=... grid.cpp -c
 clang++ -### --target=wasm32-unknown-wasi --sysroot=... grid.o main.cpp 
 ```
-which builds the application for the `wasm32` architecture with an `unkown` vendor assuming a `wasi` system.
+which builds the application for the `wasm32` architecture with an `unknown` vendor assuming a `wasi` system.
 
 ## Compilation process
 
@@ -266,7 +266,7 @@ Note that the order of `#include`s has consequences on the arrangement of this f
 
 > Possible errors during the preprocessing phase are?
 >- "include not found"
->- double include? -> pops-up later; avoid by using:
+>- double include? -> pops up later; avoid by using:
 >```pmans
 >/* file: header.h */
 >#pragma once 
