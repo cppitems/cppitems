@@ -49,7 +49,7 @@ double */*b7*/ grid_at(/*f9*/ GridType *grid, int x, int y) {
 #include "grid.h"
 int main() {
   /*f8*/ GridType /*f4*/ grid = {0};
-  /*b9*/ grid_init(&/*f4*/ grid, 3, 4);
+  /*b9*/ grid_init(&/*f4*/ grid);
   for (size_t x = 0; x != grid.nx; ++x) {
     for (size_t y = 0; y != grid.ny; ++y) {
       */*b7*/ grid_at(&/*f4*/ grid, x, y) = x + y;
@@ -62,9 +62,61 @@ int main() {
 where a sweep over the entire grid is performed using a nested for-loop.
 The `grid_at` function is used to write to the grid.
 
-Note that this library only uses C language features, apart from the namespace operator `::` for the standard library functions `calloc` and `free`.
+Note that this library only uses C language features, apart from the *scope resolution operator* `::` for the standard library functions `calloc` and `free`.
 
 > Which C++ language features are you missing? 
+>- use `class` instead of `struct`: -> only difference is the default attribute for for members and base classes
+>
+>```pmans
+>class Grid : /*b6*/ private Base {
+>  /*b7*/ private size_t nx;
+>}
+>struct Grid : /*b6*/ public Base {
+>  /*b7*/ public size_t nx;
+>}
+>```
+>- use non-static member function instead of free function `grid_at`
+>```pmans
+>grid/*b3*/ .at(i, j) = ...;
+>```
+>- use constructor/destructor instead of `grid_init`/`grid_free` for initalization and freeing resources:
+>- use `new`/`delete` instead of `malloc`/`free`
+>```pmans
+>struct Grid {
+>  /*f4*/ Grid() : nx(3), ny(4), data(/*b3*/ new double[nx*ny]) {}
+>  /*f5*/ ~Grid() { 
+>     /*b8*/ delete[] data;
+>   }
+>}
+>```
+>- use operator overloading for access
+>- return reference instead of pointer
+>```pmans
+>struct Grid {
+>    /*f7*/ double& /*b*/ operator() /*x*/(size_t x, size_t y){
+>        return data[...];
+>    }
+>}
+>```
+>- make use of containers from the standard library
+>```pmans
+>struct Grid {
+>    size_t nx;
+>    size_t ny:
+>    /*b*/ std::vector<double> /*x*/ data;
+>}
+>```
+>- use smart pointers (`std::shared_pointer`)
+>- use `auto` type deduction
+>```pmans
+>struct Grid {
+>    using Ptr = /*b*/ std::shared_ptr /*x*/<Grid>;
+>    Ptr static Create() { return /*b*/ std::make_shared /*x*/<Grid>(); }
+>}
+>// usage
+>auto grid = Grid::Create();
+>```
+
 
 
 ## File organization
@@ -73,40 +125,67 @@ It could also have been placed in a single (header) file.
 Let's discuss some consequences triggered by these two options.
 
 ### Redundancy
-If separated, a portion of the source code is redundant (the function declarations).
-In a single file, functions definition are sufficient, removing this redundancy.
+If separated (into headers and sources), a portion of the source code is redundant (the function declarations).
+In a single file, function definitions are sufficient, removing this redundancy.
 
 ### Dependent projects
-For a single file, the full implementation is included in the *source* file (*main.cpp*). Therefore, all the code is compiled together with the *source* code in a single *compilation unit*. 
+For a single file (*header-only*, i.e., one or more headers), the full implementation is included (`#include`) in the *compilation units* of dependent projects. 
 This can be advantageous during optimization but leads to longer compilation times (especially, as the compilation of a single compilation unit is hard to parallelize). 
-A change in the library requires a recompilation of the whole *source* file including the library.
+Any change in the library code requires a recompilation of the dependent projects including the library.
 
-> Why are most optimizations performed at the scope of a compilation unit?
+> Why can many optimizations be performed only in scope of a single compilation unit?
+>- all details and side effects must be visible
+>```pmans
+>for(...) {
+>  function_from_other_compilation_unit(...); 
+>} // cannot move loop-invariant code out of this function
+>```
+>- there is also link time optimization (LTO) between objects, but this is not widely applied in practice yet; linking typically "just" resolved symbols.
 
-If separated, the compilation of the library and the project happens in different compilation units, requiring a *linking* step after the compilation of the project.
-Only the *compilation unit* which has changed needs to be recompiled and can then just be *linked* with the other *compilation units*. *Linking* is much faster than *compiling*, so this saves a lot of time in large projects.
+If separated (into headers and sources), the compilation of the library and the project can happen in different compilation units, requiring a linking step after the compilation of the project.
+Only the compilation unit which has changed needs to be recompiled and can then just be *linked* with the other compilation units. Linking is much faster (just resolving symbols) than *compiling*, so this saves a lot of time in large projects.
 If project-wide *compiler flags* change, a recompilation of all *compilation units* might be necessary.
 
 > What is an example for a "project-wide compiler flag" which requires recompilation of dependent projects?
+>- debug/release/optimization level: `-g` `-O0`  `-O1` `-O2` `-O3`
+>- target for the compilation: `--target=x86_64-pc-linux-gnu -march=native`
+>- static/shared library: `-static` `-shared` `-fPIC`
+>- c++ standard/library: `-std=c++17` `-stdlib=libc++`
 
 ### Distribution
-For a single file, in the simplest case, simply this file is distributed. If the library itself has specific compilation options or dependencies, additional configuration instructions are typically provided with the source code.
+For a header-only libraries, in the simplest case, simply this headers are distributed. If the library itself has specific compilation options or dependencies, additional configuration instructions are typically provided with the source code.
 
 If separated, the distribution of the compiled library together with the header files is possible. 
 This requires a distribution of the compiled versions for all targeted platforms and configurations.
 Additionally, the sources of the library together with build instructions can be distributed.
 
 > Can different compilers/versions be used for building the distributed  libraries and later in the dependent projects?
+>- this can work (e.g., binaries compiled with clang and gcc are often compatible)
+>- only use different compilers if you have a good reason
 
 ### Template interfaces
 If a library interface includes templates (or is a pure template library), the full implementation hast to be distributed (*header-only*).
 
 > Why is *header-only* distribution required for template interfaces?
+>- types for template instantiations are only known at compile time
+>```pmans
+>// library
+>template<typename T> T func(T a, T b) {...};
+>// dependent project might want to use
+>auto c = func</*b*/ CustomType /*x*/>(a,b); // needs full to see >function body of 'func' to compile
+>```
+>- option to avoid template interface 1: explicitly force template instantiation (and symbol creation) for some predefined types
+>- option to avoid template interface 2: publish a template-free interface; use templates only 'internally'
 
 ## Build toolchain
 The compilation is performed using a *toolchain* which typically includes a *compiler*, *standard libraries*, *linker*, and *runtime libraries* for the targeted system.
 
 > Examples for each of those?
+>- clang++/LLVM, stdlib: libstdc++(default)
+>- g++/GNU, stdlib: libstdc++(default)
+>- cl.exe (Mircosoft), stdlib: "STL"
+>- icc (Intel compiler), stdlib: libc++(default)
+>- minGW (g++/GNU toolchain for builds on windows)
 
 ### Invocation
 The full set of flags when compiling our library can be revealed with
@@ -120,6 +199,12 @@ clang++ -### grid.o main.cpp
 which triggers a compilation step followed by a linker step.
 
 > Some examples for compiler flags?
+>- `-g, --debug` generate debug information
+>- `-Werror` warnings as error
+>- `-Wall` `-Weverything` warn about everything
+>-  `-ferror-limit 2` report only first two errors
+>- note: compiler flags can mean differnt things for different compilers
+>- note: compiler flags can be aliases for a group of separate flags
 
 ### Cross compilation
 Targeting a specific system and architecture which is supported by the available toolchain can look like this:
@@ -180,6 +265,22 @@ which is the starting point for the following translation.
 Note that the order of `#include`s has consequences on the arrangement of this final code document.
 
 > Possible errors during the preprocessing phase are?
+>- "include not found"
+>- double include? -> pops-up later avoid by using
+>```pmans
+>/* file: header.h */
+>#pragma once 
+>// header content
+>```
+>```pmans
+>/* file: header.h */
+>#ifndef HEADER_H
+>#define HEADER_H
+>// header content
+>#endif HEADER_H
+>```
+>- invalid language syntax, e.g., missing closing parentheses/braces `}` `)`
+>- invalid macro syntax
 
 ### Translation
 The translation process is performed according to the selected language standard. Using the C++17 standard for the translation looks like
@@ -206,6 +307,8 @@ which allows a direct mapping to names and positions in the original source file
 If the code documents satisfies the rules imposed by the language standard (i.e., a AST was successfully created), further stages of the translation, which are influenced by compiler flags produce the final output format. 
 This final output object must comply to the language standard w.r.t. to the visibility of internal symbols to other objects, and referencing of external symbols used internally.
 
+> Lecture 0 (Oct8) ended here, proceed here with L1(Oct15)
+ 
 The symbols of the resulting object file (or library) can be inspected using
 ```
 nm grid.o
@@ -245,7 +348,7 @@ clang++ -Werror -Weverything grid.cpp -c
 which is not a useful default, but is a good starting point as it reports the more granular flags responsible for the individual error groupings.
 
 > Typical error during compilation?
->
+
 > Which types of errors cannot be covered?
 
 ## Linking
@@ -263,7 +366,7 @@ produces a dynamic executable `a.out` (default filename) which requires a suitab
 The `grid.o` object file is statically linked into the executable and (therefore does not need to be installed on the system). 
 At run time, the dynamic resolution of linked libraries can be tested using 
 ```bash
-ldd main
+ldd a.out
 ```
 which shows something like
 ```
@@ -289,7 +392,7 @@ libgridlib.so => /home/project/cppitems/items/001/grid/libgridlib.so (0x00007fa5
 ```
 
 ## Build tools
-Even for small projects the creation and maintenance of the instructions for the supported toolchains required to build the targets of project can be complex. 
+Even for small projects the creation and maintenance of the instructions for the supported toolchains required to build the targets of a project can be complex. 
 The *CMake* tool is used for most openly available C++-projects as a cross-platform generator for project and dependency configurations.  
 
 A minimal platform independent *CMakeLists.txt* (default filename) configuration for our library and application could look like:
