@@ -24,6 +24,25 @@
 | Tue	12.01.2021|	4pm-7pm |	EX3 online discussion (1/3 of grade)|
 | Thu	14.01.2021|	9-11pm |	L11, last lecture|
 
+# Topics
+## C++17 core language and standard library:
+- basic concepts
+- type deduction
+- trivial types
+- pointers / references
+- value categories
+- conversions
+- lambdas
+- operator overloading
+- classes
+- smart pointers
+- iterators
+- constant expressions
+- templates
+- concurrency
+
+
+
 # Distance Learning
 The lectures (Thursdays 9-11am) and discussions of the exercises will be realized in pairs using online video conferences; access links will be announced using TISS.
 
@@ -46,11 +65,20 @@ Submission is done by pushing the solution to a git-repository on https://tea.iu
 
 # Exercise grading
 The three exercises EX1, EX2, and EX3 are graded with a maximum of 10 points each. EX0 is not graded but considered a 'hands on test' to become familiar with the submission process.
-The grading will take place in pairs during a 30min zoom-interview for each exercise. Points will be awarded for the discussion of the exercise and for the submitted code.
+The grading will take place in pairs during a 30min online-interview for each exercise. Points will be awarded for the discussion of the exercise and for the submitted code.
 You are required to have an audio **and** video supporting device for the discussion session.
 
 # Exercise discussion time slots
-Time slots for the online exercise discussion will stay fixed through the semester, e.g., each student has a fixed 15 minute slot between 4pm-6.30pm on Tuesdays (for EX1, EX2, EX3).
+Time slots for the online exercise discussion will stay fixed through the semester, e.g., each student has a fixed 30 minute slot between 4pm-7pm on Tuesdays (for EX1, EX2, EX3).
+
+If you cannot participate in the three appointments (due to unresolvable conflicts), let us know in advance:
+
+| Day  | Hour | Description  | 
+|---|---|---|---|---|
+| Tue	10.11.2020|	4pm-7pm |	EX1 online discussion (1/3 of grade)||
+| Tue	01.12.2020|	4pm-7pm	 |EX2 online discussion (1/3 of grade)||
+| Tue	12.01.2021|	4pm-7pm |	EX3 online discussion (1/3 of grade)|
+
 
 # Overall Grade
 The final grade is determined by the points achieved in EX1, EX2, and EX3; there is no final examination.

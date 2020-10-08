@@ -266,12 +266,12 @@ Note that the order of `#include`s has consequences on the arrangement of this f
 
 > Possible errors during the preprocessing phase are?
 >- "include not found"
->- double include? -> pops-up later avoid by using
+>- double include? -> pops-up later; avoid by using:
 >```pmans
 >/* file: header.h */
 >#pragma once 
 >// header content
->```
+>``` 
 >```pmans
 >/* file: header.h */
 >#ifndef HEADER_H
