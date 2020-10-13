@@ -45,7 +45,7 @@ int main() {
   }
 
   { // copy assignment
-    Vector other = Vector(1000,10);
+    Vector other = vec;
     if (vec.data() == other.data()) {
       std::cout << "copy assignment: data should not alias" << std::endl;
     }
