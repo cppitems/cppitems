@@ -34,7 +34,7 @@ clang-check -extra-arg=-std=c++17 -ast-dump --ast-dump-filter=main fundamental_t
 > Some more examples for common fundamental types / common user-defined types?
 
 ## Expressions
-An *expression* expresses a computation by prescribing a sequence of operations to be performed on a set of operands. For the fundamental type `int`, some expressions where the effect of *operators* can be guessed are:
+An *expression* describes a computation by prescribing a sequence of operations to be performed on a set of operands. For the fundamental type `int`, some expressions where the effect of *operators* can be guessed are:
 ```pmans
     using Type = int;
     Type a{1};
@@ -61,8 +61,6 @@ The *order of evaluation* of sub-expressions is not defined; but the operator pr
 > With which operands are the above operations associated?
 
 To represent intermediate results of sub-expressions, *temporary objects* might be created during execution of an expression. The lifetime of temporary objects ends with the *full-expression*: after evaluation of the expression, all temporary objects are destroyed.
-
-> What can extend the lifetime of a *temporary object*?
 
 The following commands can be used to gain detailed insights on the interpretation of the snippet above:
 ```bash
