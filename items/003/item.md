@@ -1,4 +1,4 @@
-10 // item status
+1 // item status
 # Overview: types and expressions
 Looking at a certain portion of C++ source code it is not immediately apparent what the consequences are exactly:
 ```pmans
