@@ -306,8 +306,6 @@ which allows a direct mapping to names and positions in the original source file
 
 If the code documents satisfies the rules imposed by the language standard (i.e., a AST was successfully created), further stages of the translation, which are influenced by compiler flags produce the final output format. 
 This final output object must comply to the language standard w.r.t. to the visibility of internal symbols to other objects, and referencing of external symbols used internally.
-
-> Lecture 0 (Oct8) ended here, proceed here with L1(Oct15)
  
 The symbols of the resulting object file (or library) can be inspected using
 ```
@@ -325,7 +323,27 @@ We can see that the names of the functions are mangled using some scheme which i
 Note that the mangling schemes are not part of the C++ standard, but mostly the *Itanium C++ ABI* is used, enabling compatibility between objects created by different compilers.
 
 > Why are names even mangled?
+> - fixed rules for unambiguous mapping of symbols (including the semantic information, e.g., namespaces/template specializations/function parameters
+>```pmans
+>void /*b4*/ func(int);
+>void /*b4*/ func(int, int);
+> namespace mynames {
+>   void /*b4*/ func(int);
+>   void /*b4*/ func(int, int);
+> }
+>```
+> - In contrast, C does not mangle names and directly uses the identifiers as symbols; this can also be acieved for the identifiers of a code section in C++ 
+>```pmans
+>extern "C"
+>{
+>   void /*b4*/ func(int);
+>}
+>```
+
 > Examples for what else is defined in the ABI?
+> - layout of data object (including user-defined types and)
+> - layout for compiler generated objects (e.g., virtual tables)
+> - many other convections ...
 
 Demangling of the symbols is possible using
 ```
@@ -347,15 +365,64 @@ clang++ -Werror -Weverything grid.cpp -c
 ```
 which is not a useful default, but is a good starting point as it reports the more granular flags responsible for the individual error groupings.
 
-> Typical error during compilation?
+> Typical errors during compilation?
+> - redefinitions
+>```pmans
+>struct Widget { int i;};
+>struct Widget { int i;};
+>```
+> - accessing non-existing entities
+>```pmans
+>struct Widget { int i;}
+>Widget{}.j; //usage
+>```
+> - template argument deduction failures
+>```pmans
+>template <typename Type> Type func(int a) { return Type{a}; }
+>func(3); // usage
+>```
+> - ambiguities after name lookup
+>```pmans
+>template <typename Type> Type func(int a) { return Type{a}; }
+>namespace morenames {
+>  template <typename T> T func(int b) { return T{}; }
+>}
+>func<int>(3); // usage
+>```
+> - non-matching signature after successful lookup
+>```pmans
+>void func(int a) {}
+>func(3,3); // usage
+>```
+> - type conversion not available
+>```pmans
+>struct Widget { int i;};
+>void func(int a) {}
+>func(Widget{}); // usage
+>```
+> - incompatible value categories
+>```pmans
+>struct Widget { int i;};
+>void func(Widget& w) {}
+>func(Widget{}); // usage
+>```
 
 > Which types of errors cannot be covered?
+> - logical errors: valid code not implementing the intendent functionality
+> - logical errors might also have "wide ranging" side effects (e.g., out-of-bounds writing, leaking memory)   
+> - tests can be used to reduce the former
+> - sanitizers can be used to reduce the latter 
+
 
 ## Linking
-Linking is performed after all required compilation units for an application are available as object files. 
+Linking is performed after all required compilation units are available in some form:
+- as object files (`*.o`) which hold machine code and symbols produced from a single compilation unit (and typically contains unresolved symbols)
+- as static library (`*.a`) which typically contains multiple object files (and also typically contains unresolved symbols)
+- as shared object files (`*.so`) containing multiple objects and information about dependencies to other shared objects
 
 > Typical errors during linking are ?
-
+> - "undefined reference to ... "
+> - "multiple definition of ... first defined here ..." 
 
 The result of the linking step is a *dynamically* or *statically* linked application.
 For example, 
@@ -384,7 +451,8 @@ To convert the `grid.o` object into a shared library and perform a dynamic linki
 clang++ -shared -fPIC grid.o -o libgridlib.so
 clang++ main.cpp -Wl,-rpath,/home/project/cppitems/items/001/grid libgridlib.so 
 ```
-which is also reflected with an additional line in the output of `ldd`
+which produces and links to a shared object file containing position independent code (`-fPIC`).
+This is also reflected with an additional line in the output of `ldd`
 ```
 ...
 libgridlib.so => /home/project/cppitems/items/001/grid/libgridlib.so (0x00007fa5f7a1c000)
@@ -399,7 +467,7 @@ A minimal platform independent *CMakeLists.txt* (default filename) configuration
 ```
 cmake_minimum_required(VERSION 3.0)
 project(001 LANGUAGES CXX)
-add_compile_options("-std=c++17")
+add_compile_options("std=c++17")
 add_library(gridlib SHARED grid.cpp grid.h)
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE gridlib)
@@ -413,6 +481,16 @@ make VERBOSE=1 # use CMake generated Unix Makefiles
 ```
 
 > Is a CMake configuration automatically portable?
+> - no, you can you can sprinkle non-portable thinks easily
+> - CMake is constantly improving to support convenient solutions for common requirements
+> - Special treatment might be necessary to "even out" incompatible settings between compilers
+>```
+>   if (MSVC) # for Microsoft compiler
+>       add_compile_options(/W4 /WX)
+>   else() # for all other compilers
+>       add_compile_options(-Wall -Wextra -pedantic -Werror)
+>   endif()
+>```
 
 ## Coding Style
 Formatting source code is only important if humans have to look at the code
@@ -420,6 +498,13 @@ Formatting source code is only important if humans have to look at the code
 As many flavors of coding-styles and formatting exist, bigger projects restrict this freedom and settle with a set of rules for formatting and naming. 
 
 > Examples for rules defined through a coding style?
+> - placement of spaces, example: `double *ptr;` vs `double* prt;`
+> - naming conventions 
+> - maximum width of a line
+> - linebreak rules w.r.t. "language tokens" e.g., `{`
+> - indents, indent widths (different rules for different contexts)
+> - placement/alignment of comments
+
 
 ### Formatting
 To avoid manual code-rearrangement and to guarantee consistent style, formatting tools are used. A very prominent tool is *clang-format*. 
@@ -435,6 +520,8 @@ where the dominant adoptions are white space/newline arrangements.
 Note that this is a lightweight standalone tool, e.g., it does not try to compile the code.
 
 > Could clang-format also be used for refactoring tasks?
+> - refactoring C++ projects is a topic on its own and at least requires "full overview" of how a project and all involved resources are compiled 
+> - clang-format is agnostic to the full project and performs formatting (no refactoring) on a single file basis.
 
 ### Linting
 To ensure a consistent coding style going further than bare-formatting, a 'linter' can be used.
@@ -469,6 +556,8 @@ if the check 'cppcoreguidelines-no-malloc' is enabled.
 Both tools clang-format and clang-tidy are integrated into the language server *clangd* which is available for many IDEs via a plugin.
 
 > Examples for problems not detectable by the linter?
+> - in general, a linter has the same limitations as a compiler (see above)
+> - although, the checks of a linter can help to prevent error-prone situations which in turn might help to prevent logical errors
 
 ## Sanitizers
 Many error-prone situations can be detected using linting. 
@@ -477,6 +566,8 @@ To capture such unwanted situations, clang (and gcc) offer *sanitizers* which ca
 Enabling sanitizers typically leads to a slowdown and increased memory consumption.
 
 > Major difference between compile time (linting) and run time (sanitizers) checks?
+> - sanitizer checks for a *specific* execution (input parameters)
+> - e.g., when detecting no memory leaks, it is still possible that memory leaks occur for different input parameters 
 
 ### Memory errors
 The AddressSanitizer (ASAN) detects problems related to memory access like *out-of-bounds* access and also contains a
@@ -568,8 +659,13 @@ instructions from two different threads
 - at least one instruction is modifying value,
 - and no synchronization rule is present.
 
-> What is a race condition?
+*Race conditions* cannot be detected.
 
+> What is a race condition?
+> - assuming the implementation of an interface that, when used from a single thread exclusively, cannot lead to a program state which violates the logic of the interface and involved objects. 
+> - A race condition is observed if a program state which does violate the logic of the interface is possible if more than one thread concurrently accesses the interface.
+```pmans
+```
 For example in
 ```pmans
 /// ...
@@ -615,7 +711,7 @@ A similar situation when using *OpenMP* looks like
   grid_free(&grid);
 /// ...
 ```
-which might look something like
+which might look something like this:
 ```
 ==================
 WARNING: ThreadSanitizer: data race (pid=24952)

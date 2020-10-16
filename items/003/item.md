@@ -8,21 +8,29 @@ Looking at a certain portion of C++ source code it is not immediately apparent w
   auto c = a + b + b++;                 // (3)
 ```
 > What is the state of `b` after (1)?
+> - initialized with `1` (int) but we know nothing more
 
 > How are `a` and `b` related after (2)? 
+> - shallow copy/deep copy/no relation, can't know
 
 > Does (3) have side effects on `a`? What about `b`?
+> - if (2) keeps a relation between `a` and `b`, also `b++` might influence `b`
+> - we don't know what the effects of operator+(...) are for `Type`
 
-> What does `+` and `++` in (3) actually do?
 
 To answer these questions, it is required to know details about the involved *types* in an *expression* and how expressions are evaluated. If `using Type = int;` the consequences of the above statements/expressions are intuitively clear. 
 But what about this:
 ```pmans
   using Type = int;
-  auto d = 2 + 2 * Type{1} / Type(2.0); // (4)
+  auto d = 2 + 2 * Type{1} / Type(2.0); // (4) 
   auto e = 2.5 + Type{1} / Type{2} * 5; // (5)
 ```
-To exactly describe the effects of (4) and (5) additional knowledge about the `auto` *type deduction* mechanism, involved operators/precedence, and *implicit conversions* of *fundamental types* is required.
+To exactly describe the effects of (4) and (5) additional knowledge about the `auto` *type deduction* mechanism, involved operators/precedence, and *implicit conversions* of *fundamental types* is required:
+
+```pmans
+  /*b3*/ int d = 2 + /*b2*/ ((2 * 1/*b1*/ ) / 2 /*b1*/ ); // (4) equivalent
+  /*b6*/ double e = 2.5 + /*f*/ static_cast<double> /*x*//*b3*/ (((1 / 2/*b1*/ ) * 5/*b2*/ )); // (5) equivalent
+```
 
 ```bash
 # show deduced types, conversions and precedence
@@ -32,6 +40,8 @@ clang-check -extra-arg=-std=c++17 -ast-dump --ast-dump-filter=main fundamental_t
 ```
 
 > Some more examples for common fundamental types / common user-defined types?
+> - `double`, `float`, `long`, `int`, `char`, `bool`
+> - `std::numeric_limits`, `std::vector`, `std::set`, `std::iterator`, `std::map`, `std::shared_ptr`, `std::enable_if`, `std::move`, `std::thread`
 
 ## Expressions
 An *expression* describes a computation by prescribing a sequence of operations to be performed on a set of operands. For the fundamental type `int`, some expressions where the effect of *operators* can be guessed are:
@@ -40,25 +50,34 @@ An *expression* describes a computation by prescribing a sequence of operations 
     Type a{1};
     Type b{2};
     Type c{3};
-    a /*b1*/ = b /*b1*/ + c /*b1*/ + c;                                      // (1)
-    a /*b1*/ = b /*b1*/ + c /*b1*/ * c;                                      // (2)
-    a /*b1*/ = 2 /*b1*/ + c /*b1*/ + 1 /*b1*/ / 2;                                  // (3)
-    a /*b1*/ = 2.5 /*b1*/ + c /*b1*/ + a;                                    // (4)
-    a /*b1*/ + b /*b1*/ + c;                                          // (5)
+    a /*b1*/ = b /*b1*/ + c /*b1*/ + c;                              // (1)
+    a /*b1*/ = b /*b1*/ + c /*b1*/ * c;                              // (2)
+    a /*b1*/ = 2 /*b1*/ + c /*b1*/ + 1 /*b1*/ / 2;                         // (3)
+    a /*b1*/ = 2.5 /*b1*/ + c /*b1*/ + a;                           // (4)
+    a /*b1*/ + b /*b1*/ + c;                                 // (5)
 ```
 Typically, *operands* are variables and most operators are *binary*, i.e., work with two operands. 
+Transforming (2) into equivalent forms which make this visible looks like this:
+```pmans
+    a = (b + (c * c));                             // (2) equivalent
+    a./*f9*/ operator=/*b1*/ (b./*f9*/ operator+/*b1*/ (c./*f9*/ operator*/*b1*/ (c/*b3*/ )));  // (2) conceptually equivalent
+```
 
 > Examples for non-binary operators?
+> - `operator++()` for `++b`
+> - `operator++(int)` for `b++`
+> - `auto a_or_b = condition ? a : b`
 
 
 Function calls can also  be part of an expression (i.e., the returned value):
 ```pmans
-    auto /*f*/ lambda /*x*/ = [](Type a, Type b) { return a /*b1*/ - b; };  // (6)
-    a /*b1*/ = /*f*/ lambda /*x*/(a, c) /*b1*/ + b /*b1*/ + /*f*/ lambda /*x*/(a, c);                // (7)
+    auto /*f*/ lambda /*x*/ = [&a](Type b) { return /*b2*/ --a /*b1*/ - b; };  // (6)
+    a /*b1*/ = /*f*/ lambda /*x*/(b) /*b1*/ + b /*b1*/ - /*f*/ lambda /*x*/(b);                  // (7)
 ```
 The *order of evaluation* of sub-expressions is not defined; but the operator precedence defines which operands are associated with each operator.
 
-> With which operands are the above operations associated?
+> With of the two `lambda` evaluations takes place first ?
+> - the order of evaluation of in *not* defined by the standard
 
 To represent intermediate results of sub-expressions, *temporary objects* might be created during execution of an expression. The lifetime of temporary objects ends with the *full-expression*: after evaluation of the expression, all temporary objects are destroyed.
 
@@ -75,9 +94,19 @@ Every *entity* that is used in an *expression* has a *type*; also the expression
 This type controls how an entity can be "used" and what it exactly means when it is used in a certain semantic embedding (i.e., operators in an expression).
 *All* types are determined at compile time, even if they are not explicitly visible in the source (using deduction rules).
 
-> What are a typical compile time errors w.r.t. "types"?   
+> What are a typical compile time errors w.r.t. types?  
+> - nearly all error messages are related to types 
 
-> Which run time errors are possible if dynamically typed languages, e.g., JavaScript or Python?
+> Which run time errors are possible in dynamically typed languages, e.g., JavaScript or Python?
+> - JavaScript defaults to `undefined` if a method or member does not exist and run time checking might look like:
+>```pmans
+>// JavaScript
+>function func(object) {
+>  if(object.method === undefined ) { return object.method(5); }
+>  else { throw "error"; }
+>}
+>```
+> - to provide type safety for JavaScript or Python, compile time type checking frameworks (e.g., mypy or TypeScript) are available, releasing the burden to do checks like the one above 
 
 ### Debugging types
 
@@ -90,7 +119,7 @@ template <typename T> struct DebugType { using T::notexisting;};
 int main() {
   const int &a = 5;
   const double b = a + 5.0;
-  DebugType<decltype(a)> type_a;
+  DebugType<decltype(...)> type_a;
   ...
 }
 ```
@@ -146,13 +175,19 @@ int main() {                                            // (2)
   return 0;
 }
 ```
-> Which types are deduced for in marked objects the snippet above?
 
 To reveal the actual types we can use the method introduced above. 
 
 ### Types produced by "high level" language features
 
-For lambda functions, the compiler error message might not be very informative. Instead the following commands can be used to provide further details:
+For lambda functions, the compiler error message might not be very informative. E.g., for line (10) the message looks like this:
+
+```pmans
+... error: using declaration refers into '(lambda at more_types.cpp:18:17)::',
+ which is not a base class of 'DebugType</*b*/ (lambda at more_types.cpp:18:17) /*x*/>'
+```
+
+Instead the following commands can be used to provide further details:
 
 ```bash
 # show deduced types, conversions and precedence
@@ -175,6 +210,7 @@ private: // local variables captured by copy [=]
   const double b;
 };
 /*f*/ __lambda_18_17 /*x*/ /*b6*/ lambda = /*f*/ __lambda_18_17 /*x*/{a, b}; // instantiation
+lamdba(Widget{}); // possible usage
 ```
 which implements the behavior of the lambda function definition according the the standard.  
 The decomposition in (13) (*structural binding declaration*) is reported as three individual assignments which conceptually looks like this:
@@ -185,6 +221,8 @@ The decomposition in (13) (*structural binding declaration*) is reported as thre
   std::tuple_element<1UL, /*f*/ TupleType /*x*/>::type& /*f*/ two /*x*/ = std::get<1UL>(/*b*/ pack /*x*/);
   std::tuple_element<2UL, /*f*/ TupleType /*x*/>::type& /*f*/ three /*x*/ = std::get<2UL>(/*b*/ pack /*x*/);
 ```
+
+> Lecture 1 ended here. To be continued with in Lecture 2 on Oct 22th. 
 
 ## User-defined types
 
