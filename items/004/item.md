@@ -1,6 +1,5 @@
 10 // item status
 # Overview: value categories and references
-
 Additionally to a *type*, each expression is also characterized by its *value category* which is either *prvalue*, *xvalue*, or *lvalue*.
 Compatible references can bind to expressions providing an alias to the object determined by the evaluation of the expression.
 
