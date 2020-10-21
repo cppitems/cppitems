@@ -1,5 +1,4 @@
 10 // item status
-
 # Overview: value categories and references
 
 Additionally to a *type*, each expression is also characterized by its *value category* which is either *prvalue*, *xvalue*, or *lvalue*.
