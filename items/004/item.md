@@ -1,6 +1,10 @@
 9 // item status
 # Overview: value categories and references
-Additionally to a *type*, each expression is also characterized by its *value category* which is either *prvalue*, *xvalue*, or *lvalue*.
+Additionally to a *type*, each expression is also characterized by its *value category*, which is one of the three:
+* *lvalue*
+* *prvalue*
+* *xvalue*
+
 Compatible references can bind to expressions providing an alias to the object determined by the evaluation of the expression.
 
 ## Value categories of expressions
@@ -11,8 +15,8 @@ struct /*f6*/ Widget {
   int /*f1*/ m;
 };
 ```
-**lvalue** expressions determine a *locatable* *non-moveable* `Widget`. 
-All lvalue expressions determining a `Widget` are marked in the snippet below:
+**lvalue** expressions determine a *locatable* *non-moveable* object of the type `Widget`. 
+All lvalue expressions determining a `Widget` object are marked in the snippet below:
 ```pmans
   Widget var;
   /*b5*/ var.m = 5;                      // (1)
@@ -23,14 +27,14 @@ All lvalue expressions determining a `Widget` are marked in the snippet below:
   int i = /*b8*/ clref.m;                // (6)
  ```
 Typically lvalues are variables `var` (1)(2) or *lvalue references* `lref` (3). 
-A pointer `ptr` itself is not determining a `Widget`;
+A pointer `ptr` itself is not determining an object of type `Widget`;
 but a dereferenced pointer `*ptr` (4) does.
 A temporary object can bind to a `const` lvalue reference `clref` (5);
 this binding extends the lifetime by means of the lifetime of the reference variable `clref` (6).
 
 > Informally, how would you characterize lvalues?
 
-**prvalue** expressions can initialize a `Widget` but are not (yet) affiliated with locatable `Widget` object.  Depending on the context a prvalue can materializing as a temporary object or directly initializing a variable. In the following all prvalue expressions for a `Widget` are marked:
+**prvalue** expressions can initialize a `Widget` object but are not (yet) affiliated with locatable `Widget` object.  Depending on the context, a prvalue can be a temporary object or directly initialize a variable. In the following all prvalue expressions for `Widget` are marked:
 ```pmans
   const Widget &clref = /*b8*/ Widget{}; // (1)
   Widget &&rref = /*b8*/ Widget{};       // (2)
@@ -120,7 +124,7 @@ If a lvalue reference is declared `const` it can also be initialized with `const
 > Which of the lines compiles now? Which lifetimes are extended?
 
 ## Non-const rvalue references
-Non-const rvalue references can bind to and non-const rvalues (xvalues and temporaries).
+Non-const rvalue references can bind to non-const rvalues (xvalues and temporaries).
 ```pmans
   Widget var{};
   const Widget cvar{};
@@ -148,12 +152,12 @@ The above rules for "which value categories can bind to which reference type" ar
   /*b7*/ auto &&fref = (...);       // (5) special functionality! "forwarding reference"
   const auto &&crref = (...); // (6) 
 ```
-(1) initializes a non-reference variable, 
-(2) initialize a const non-reference variable, 
-(3) binds a non-const lvalue reference to a non-const lvalues, 
-(4) binds const lvalue reference to any expression, 
-(5) binds a *forwarding reference* to any expression,
-(6) binds a const rvalue reference to any rvalue expression.
+(1) initializes a non-reference variable,<br>
+(2) initialize a const non-reference variable,<br>
+(3) binds a non-const lvalue reference to a non-const lvalue,<br>
+(4) binds const lvalue reference to any expression,<br>
+(5) binds a *forwarding reference* to any expression,<br>
+(6) binds a const rvalue reference to any rvalue expression.<br>
 
 With this knowledge let's try some things which do not work out with `auto`:
 ```pmans
@@ -187,7 +191,7 @@ Some further example where the constness and value category is reflected in the 
 > What is the constness and value category of the references above?
 
 
-As `auto &&` references preserve the original constness and value category they are also called *forwarding references*.
+As `auto &&` references preserve the original constness and value category they are also *forwarding references*.
 
 ## Reference collapsing
 It is permitted to take references of references, e.g., using a type alias as in the snippet below:
