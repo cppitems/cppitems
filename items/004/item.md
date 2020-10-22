@@ -1,4 +1,4 @@
-9 // item status
+1 // item status
 # Overview: value categories and references
 Additionally to a *type*, each expression is also characterized by its *value category*, which is one of the three:
 * *lvalue*
@@ -152,12 +152,12 @@ The above rules for "which value categories can bind to which reference type" ar
   /*b7*/ auto &&fref = (...);       // (5) special functionality! "forwarding reference"
   const auto &&crref = (...); // (6) 
 ```
-(1) initializes a non-reference variable,<br>
-(2) initialize a const non-reference variable,<br>
-(3) binds a non-const lvalue reference to a non-const lvalue,<br>
-(4) binds const lvalue reference to any expression,<br>
-(5) binds a *forwarding reference* to any expression,<br>
-(6) binds a const rvalue reference to any rvalue expression.<br>
+- (1) initializes a non-reference variable,
+- (2) initialize a const non-reference variable,
+- (3) binds a non-const lvalue reference to a non-const lvalue,
+- (4) binds const lvalue reference to any expression,
+- (5) binds a *forwarding reference* to any expression,
+- (6) binds a const rvalue reference to any rvalue expression.
 
 With this knowledge let's try some things which do not work out with `auto`:
 ```pmans
