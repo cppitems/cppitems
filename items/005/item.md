@@ -3,6 +3,8 @@
 
 This exercise is one of three parts of EX1; submission deadline for EX1 is **Mo 09.11.2020, 4pm**. See also https://cppitems.github.io/#/item/000 for an overview of dates and deadlines.
 
+The source related to this exercise are available at https://github.com/cppitems/cppitems/tree/master/items/005 .
+
 This exercise deals with a `Widget` type which looks like this:
 ```pmans
 struct /*f*/ Widget /*x*/{
@@ -11,7 +13,7 @@ struct /*f*/ Widget /*x*/{
 ```
 `Widget` has a single non-reference member `vec` which is of type `std::vector<double>`.
 
-Your task is to implement two overloaded versions of an initialization function which initialize a `Widget` using references to an already existing `std::vector<double>` object. 
+Your task is to complete the implementaton of two overloaded versions of an initialization function (in `benchmarking_initializers.cpp`) which initialize a `Widget` using references to an already existing `std::vector<double>` object. 
 Otherwise you should not change anything beside the function body of these functions (which already exist, but are 'empty').
 
 ## Rvalue reference
