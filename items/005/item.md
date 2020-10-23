@@ -14,8 +14,11 @@ struct /*f*/ Widget /*x*/{
 ```
 `Widget` has a single non-reference member `vec` which is of type `std::vector<double>`.
 
-Your task is to complete the implementaton of two overloaded versions of an initialization function (in `benchmarking_initializers.cpp`) which initialize a `Widget` using references to an already existing `std::vector<double>` object. 
-You should not change any code beside the function body of these two functions (which already exist, but are 'empty').
+Your task is to complete the implementaton of two overloaded versions of an initialization function `init(...)`and a third non-overloaded function `init_byvalue(...)` in `benchmarking_initializers.cpp`.
+All three functions initialize a `Widget` using an existing `std::vector<double>` object which is passed as argument.
+You should not change any code beside the function bodies of these three functions (which already exist, but are 'empty').
+
+Finally, you should benchmark your implementations and prepare yourself for a discussion on the obtained runtime differences when benchmarking your implementations using the benchmark setup which is also provided in `benchmarking_initializers.cpp`.
 
 ### Overload 1: rvalue reference
 
@@ -25,7 +28,8 @@ Widget /*f4*/ init(/*b*/ std::vector<double> && /*x*/rref) {
   ...
 };
 ```
-You have to implement the function and make 'best use' of the rvalue reference, i.e., it should be moved into the returned `Widget` object for performance reasons.
+You have to implement the function and make 'best use' of the rvalue reference
+The argument is of type rvalue reference and only binds to movable objects, which means it can be 'moved into' the returned `Widget` object for performance reasons.
 
 ### Overload 2: lvalue reference
 
@@ -35,38 +39,34 @@ Widget /*f4*/ init(/*b*/ const std::vector<double> & /*x*/lref) {
   ...
 };
 ```
-Again, it is your task to implement the function. As now an lvalue reference is passed, the `std::vector<double>` cannot be 'moved into' the `Widget` but instead has to be copied.  
+Again, it is your task to implement the function. As now the argument if of type lvalue reference, the `std::vector<double>` cannot be 'moved into' the `Widget` but instead has to be copied.  
 
-## Benchmarking
-The `benchmarking_initializers.cpp` also benchmarks the performance of the initalizations (once you implemented them) by measuring the run time of
-```pmans
-    Vector vec(size, std::rand());
-    Widget w = init(std::move(vec)); // resolved to rvalue overload
-```
-and
-```pmans
-    Vector vec(size, std::rand());
-    Widget w = init(vec);            // resolved to lvalue overload
-```
-and prints the respective run times to the console.
+### Option 3: by-value
 
-## Reference benchmark
-As reference, a benchmark is provided in `benchmarking_constructors.cpp`. It analogously measures the run time of
+The third function `init_byvalue(...)` takes a single non-reference argument of type `std::vector<double>` and returns a `Widget` by value:
 ```pmans
-    Widget var = Widget(size, std::rand());
-    Widget w = /*f*/ std::move /*x*/(var) ; // invoking implicit move construction
-```
-and
-```pmans
-    Widget var = Widget(size, std::rand());
-    Widget w = var; // invoking implicit copy construction
-```    
-for the implicitly defined copy/move constructors. They are explicitly defaulted to reveal the similarity of their prototypes (i.e., overloading using different reference types) to your initialization functions: 
-```pmans
-struct Widget {
-  std::vector<double> vec;
-  Widget(size_t size, double init) : vec(size, init) {}
-  Widget(/*b*/ const Widget & /*x*/) = default; // implicit copy constructor
-  Widget(/*b*/ Widget && /*x*/) = default;      // implicit move constructor
+Widget /*f*/ init_byvalue /*x*/(/*b*/ const std::vector<double>  /*x*/vec) {
+  ...
 };
 ```
+Again, it is your task to implement the function and to make 'best use' of the local copy of the `std::vector<double>` which is available by means of the function argument.
+
+## Benchmarking
+The `benchmarking_initializers.cpp` benchmarks the performance of all three  initalization functions (once you implemented them) by measuring the run time of
+```pmans
+    Vector vec(size, std::rand());
+    Widget w = init(std::move(vec)); // rvalue overload of init(...)
+```
+and
+```pmans
+    Vector vec(size, std::rand());
+    Widget w = init(vec);            // lvalue overload of init(...)
+```
+for the overloads and
+```pmans
+    Vector vec(size, std::rand());
+    Widget w = init_byvalue(vec);     // uses init_byvalue(...)
+```
+for the third function.
+
+The respective runtimes are printed to the console. 
