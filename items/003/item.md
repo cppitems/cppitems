@@ -74,10 +74,17 @@ Function calls can also  be part of an expression (i.e., the returned value):
     auto /*f*/ lambda /*x*/ = [&a](Type b) { return /*b2*/ --a /*b1*/ - b; };  // (6)
     a /*b1*/ = /*f*/ lambda /*x*/(b) /*b1*/ + b /*b1*/ - /*f*/ lambda /*x*/(b);                  // (7)
 ```
-The *order of evaluation* of sub-expressions is not defined; but the operator precedence defines which operands are associated with each operator.
+The *order of evaluation* of sub-expressions is not defined; but the operator precedence defines which operands are associated with each operator. 
 
 > With of the two `lambda` evaluations takes place first ?
-> - the order of evaluation of in *not* defined by the standard
+> - the order of evaluation of in *not* defined in the standard
+
+> What happens if multiple operators of equal precedence are 'chained'?
+> - they are evaluated accoring to the associativity of the operator
+>```pmans
+>a + b + c; // 'chained' operator+; operator+ is left-to-right associative
+>((a + b) + c); // equivalent with explicit parentheses
+>```
 
 To represent intermediate results of sub-expressions, *temporary objects* might be created during execution of an expression. The lifetime of temporary objects ends with the *full-expression*: after evaluation of the expression, all temporary objects are destroyed.
 
@@ -220,9 +227,7 @@ The decomposition in (13) (*structural binding declaration*) is reported as thre
   std::tuple_element<0UL, /*f*/ TupleType /*x*/>::type& /*f*/ one /*x*/ = std::get<0UL>(/*b*/ pack /*x*/);
   std::tuple_element<1UL, /*f*/ TupleType /*x*/>::type& /*f*/ two /*x*/ = std::get<1UL>(/*b*/ pack /*x*/);
   std::tuple_element<2UL, /*f*/ TupleType /*x*/>::type& /*f*/ three /*x*/ = std::get<2UL>(/*b*/ pack /*x*/);
-```
-
-> Lecture 1 ended here. To be continued with in Lecture 2 on Oct 22th. 
+``` 
 
 ## User-defined types
 
@@ -241,18 +246,44 @@ Let's now look at the example from above again and change `Type` from `int` to a
     Type a{};
     Type b{};
     Type c{};
-    a = b + c + c;                                      // (1)
-    a = b + c * c;                                      // (2)
-    a = 2 + c + 1 / 2;                                  // (3)
-    a = 2.5 + c + a;                                    // (4)
-    a + b + c;                                          // (5)
-    auto lambda = [](Type a, Type b) { return a - b; }; // (6)
-    a = lambda(a, c) + b;                               // (7)
+    a = b /*b1*/ + c /*b1*/ + c;                          // (1) operator+(Widget&,Widget&)
+    a = b /*b1*/ + c /*b1*/ * c;                          // (2) operator*(Widget&,Widget&)
+    a = 2 /*b1*/ + c + /*b1*/ ( 1 / 2 /*b1*/ );                 // (3) operator+(int, Widget); conversion from 'int'
+    a = 2.5 /*b1*/ /*b1*/ + c /*b1*/ + a;                       // (4) missing operator+(double, Widget)
+    a /*b1*/ + b /*b1*/ + c;                                          // (5) operator+(Widget&,Widget&)
+    auto lambda = [](Type a, Type b) { return a /*b1*/ - b; }; // (6) operator-(Widget,Widget&)
+    a = lambda(a, c) /*b1*/ + b;                               // (7) operator+(Widget&,Widget&)
   }
 ```
 > Which expressions would not compile? Which sub-expressions exactly?
+> - (1)-(7) do not compile due to missing definitions for binary operators and missing conversion rules between `int` and `Widget`, see inline comments above
 
-> How to make `Widget` "compatible" with the expressions? 
+
+> How to make `Widget` "compatible" with the expressions above? 
+> - add converting constructor to `Widget`
+>```pmans
+>struct Widget {
+>  int i;
+>  Widget(int i) : i{i} {} // implicitly converts between `int` and `Widget` ...
+>  Widget() : i{} {}; // ... this requires to explicitly define the default constructor
+>```
+> - add operator overloads for `Widget` as member functions
+>```pmans
+>struct Widget {
+>  int i;
+>  auto operator/*b1*/ +(const Widget &other) const { return Widget{i /*b1*/ + other.i}; }
+>  auto operator/*b1*/ -(const Widget &other) const { return Widget{i /*b1*/ - other.i}; }
+>  auto operator/*b1*/ *(const Widget &other) const { return Widget{i /*b1*/ * other.i}; }
+>  ...
+>}
+>```
+> - add free function (template) to implement `operator+(int, Widget)` and `operator+(double, Widget)`
+>```pmans
+>template <typename T> auto operator+(const T &maywork, const Widget &widget) {
+>  return T{maywork + widget.i}; 
+>};
+>```
+>- see `expressions_user.cpp` for the implemenation 
 
 ```bash
 # compile
@@ -266,7 +297,7 @@ clang++ -std=c++17 -ferror-limit=1 expressions_user.cpp
     Type a,b,c;
     // original source code
     c = a * 5 + b + 1 / 2;   
-    // precedence indicated by parentheses        
+    // precedence indicated by parentheses      
     c = ((a * 5) + b) + (1 / 2);    
     // explicit binary operator calls
     c.operator=(a.operator*(5).operator+(b).operator+(1 / 2)); 
@@ -307,7 +338,7 @@ clang++ -std=c++17 -ferror-limit=1 expressions_user.cpp
 ## Links
 - Expressions: https://en.cppreference.com/w/cpp/language/expressions
 - Types: https://en.cppreference.com/w/cpp/language/type
-- Operator precedence: https://en.cppreference.com/w/cpp/language/operator_precedence
+- Operator precedence/associativity: https://en.cppreference.com/w/cpp/language/operator_precedence
 - Initialization: https://en.cppreference.com/w/cpp/language/initialization
 - Structured binding: https://en.cppreference.com/w/cpp/language/structured_binding
 - Special member functions: https://en.cppreference.com/w/cpp/language/rule_of_three

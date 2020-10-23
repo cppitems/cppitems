@@ -1,29 +1,38 @@
 struct Widget {
   int i;
+  // operator overloads as member functions
   auto operator+(const Widget &other) const { return Widget{i + other.i}; }
   auto operator-(const Widget &other) const { return Widget{i - other.i}; }
   auto operator*(const Widget &other) const { return Widget{i * other.i}; }
-  Widget() : i{} {};
-  Widget(int i) : i(i){};
+  Widget(int i) : i(i){}; // converting constructor for 'int' to 'Widget'
+  Widget()
+      : i{} {}; // explicit default constructor (implicit version is deleted due
+                // to existence of user-defined constructor)
 };
 
-template <typename T> auto operator+(const T &anytype, const Widget &widget) {
-  return T{anytype + widget.i};
+// operator overload as free function
+// this template would be considerend for any type T, but will fail to be
+// instantiated for incompatible types. how to restrict T to a strict subset of
+// types which are known to be compatible, e.g. integral types?
+template <typename T> auto operator+(const T &maywork, const Widget &widget) {
+  return T{maywork + widget.i}; 
 };
 
 int main() {
   {
     // struct Widget {
     //   int i;
-    // };     
+    // };
     using Type = Widget;
     Type a{};
     Type b{};
     Type c{};
     a = b + c + c;                                      // (1)
     a = b + c * c;                                      // (2)
-    a = 2 + c + 1 / 2;                                  // (3)
-    a = 2.5 + c + a;                                    // (4)
+    a = (2 + c) + 1 / 2;                                // (3)
+    a = operator+<int>(2, c) + Widget{1 / 2};           // (3) equivalent
+    a = (2.5 + c) + a;                                  // (4)
+    a = operator+<double>(2.5, c) + a;                  // (3) equivalent
     a + b + c;                                          // (5)
     auto lambda = [](Type a, Type b) { return a - b; }; // (6)
     a = lambda(a, c) + b;                               // (7)
