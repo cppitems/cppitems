@@ -1,4 +1,4 @@
-9 // item status
+1 // item status
 # EX1.2 (preliminary version)
 
 This exercise is **part two** of three parts of EX1. See also [Item 000](https://cppitems.github.io/#/item/000) for an overview and deadlines. The submission deadline for EX1 (all three parts) is **Mo 09.11.2020, 4pm**. The sources related to EX1.2 are available at [Item 007](https://github.com/cppitems/cppitems/tree/master/items/007).
@@ -15,7 +15,7 @@ struct /*b*/ Widget /*x*/ {
 ```
 `Widget` has a single non-reference member `vec` which is of type `Vector<double>` (i.e., the specialization of a `Vector` template-class for `double`).
 
-A defective implementation of the `Vector` template class is provided in `vector.cpp`.
+A defective implementation of the `Vector` template class is provided in `vector.hpp`.
 It is your task to change the *defaulted* implementations of (1) the copy constructor, (2) the move constructor, and (3) the destructor of `Vector` to match the demands for this resource owning type. You should only change code of these three special member functions.
 The defective implementation of `Vector` you start with looks like this:
 ```pmans
@@ -44,9 +44,10 @@ public:
   value_type &operator[](size_type pos) { return dataPointer[pos]; }
 };
 ```
+Prepare yourself for a discussion of your implementation. 
 
-## Reference benchmark
-As reference, a benchmark is provided in `benchmarking_constructors.cpp`. It measures the run time of
+## Benchmarking
+For testing your implementation and its performance, a benchmark is provided in `benchmarking_constructors.cpp`. It measures the run time of
 ```pmans
     Widget var = Widget(size, std::rand());
     Widget w = /*f*/ std::move /*x*/(var) ; // invoking move construction

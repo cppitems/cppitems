@@ -1,4 +1,4 @@
-9 // item status
+1 // item status
 # Special member functions
 Let's pick a simple user-defined type and consider the expected behavior (which is implicitly available) in certain semantic embeddings:
 ```pmans

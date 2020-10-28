@@ -17,9 +17,11 @@ public:
       dataPointer[i] = value;
     }
   }
-  Vector(const Vector &vec) = default;
-  Vector(Vector &&vec) = default;
-  ~Vector() = default;
+  // you task it to implement the three SMF below according to the needs of this
+  // resource owning class
+  Vector(const Vector &vec) = default; // (1) defaulted copy-ctor (defective),
+  Vector(Vector &&vec) = default;      // (2) defaulted move-ctor (defective)
+  ~Vector() = default;                 // (3) defaulted dtor (defective)
 
   value_type *data() { return dataPointer; }
   size_type size() { return dataSize; }
