@@ -1,43 +1,49 @@
+#include "vector.hpp"
+
 #include <chrono>
 #include <iostream>
-#include <vector>
 
-using Vector = std::vector<double>;
+using VectorD = Vector<double>;
 
 struct Widget {
-  Vector vec;
-  Widget(size_t size, Vector::value_type init) : vec(size, init) {}
-  Widget(const Widget &) = default; // implicit copy constructor
-  Widget(Widget &&) = default;      // implicit move constructor
+  VectorD vec;
+  Widget(size_t count, const VectorD::value_type &value) : vec(count, value) {}
 };
 
 // 'main' measures the runtime for
-// implicit move constructor (test1) and
-// implicit copy constructor (test2)
+// move constructor (testMove) and
+// copy constructor (testCopy)
 int main() {
 
   size_t size = 1'000'000; // vector length 1M == ~7MB
   size_t n = 10;           // iterations for averaging runtime
 
-  auto test1 = [size]() {
+  auto testMove = [size]() {
     Widget var = Widget(size, std::rand());
-    Widget w = std::move(var); // invoking implicit move construction
-    if (var.vec.data() != nullptr) {
-      std::cout << "widget was not move constructed, this can be improved"
+    const VectorD::value_type *tmp = var.vec.data();
+    Widget w = std::move(var); // invoking move constructiont
+    if (var.vec.data() != nullptr || w.vec.data() != tmp) {
+      std::cout << "Widget was not move constructed, this can be improved!"
                 << std::endl;
     }
   };
-  auto test2 = [size]() {
+  auto testCopy = [size]() {
     Widget var = Widget(size, std::rand());
-    Widget w = var; // invoking implicit copy construction
+    Widget w = var; // invoking copy construction
     if (w.vec.data() == nullptr) {
-      std::cout << "Widget was moved from lvalue, should not happen"
+      std::cout << "Widget was moved from lvalue, should not happen!"
                 << std::endl;
     }
-    if (var.vec.size() != w.vec.size() || var.vec[1] != w.vec[1]) {
-      std::cout << "vectors of not equal size, or different value, should not happen"
+    if (var.vec.size() != w.vec.size()) {
+      std::cout << "vectors of not equal size or capacity, should not happen!"
                 << std::endl;
-    }     
+    }
+    for (unsigned i = 0; i < var.vec.size(); ++i) {
+      if (var.vec[i] != w.vec[i]) {
+        std::cout << "Vector elements " << i
+                  << " are not the same, should not happen!" << std::endl;
+      }
+    }
   };
 
   auto runtest = [n](auto &&test) {
@@ -51,7 +57,11 @@ int main() {
     return Duration(stop - start).count() / n;
   };
 
- std::cout << std::scientific;
-  std::cout << runtest(test1) << "s" << std::endl;
-  std::cout << runtest(test2) << "s" << std::endl;
+  auto timeMove = runtest(testMove);
+  auto timeCopy = runtest(testCopy);
+  std::cout << std::scientific;
+  std::cout << "Moving took:  " << timeMove << " s" << std::endl;
+  std::cout << "Copying took: " << timeCopy << " s" << std::endl;
+  std::cout << std::fixed << "Moving was " << (timeCopy / timeMove)
+            << " times faster!" << std::endl;
 }
