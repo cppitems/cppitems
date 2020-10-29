@@ -245,8 +245,7 @@ Non-const rvalue references can bind to non-const rvalues (xvalues and temporari
 > - (1)-(2), see inline comments above
 
 > Why do we even need rvalue references?
-> - rvalue reference for the basis for the *move semantics* introduced in C++11 (topic of later lectures)
-
+> - rvalue reference for the basis for the *move semantics* introduced in C++11 
 > end of lecture 22th oct
 
 ## Const rvalue references
@@ -259,12 +258,12 @@ If a rvalue reference is declared `const` it can bind to any rvalue (xvalues and
 ## `auto` type deduction 
 The above rules for "which value categories can bind to which reference type" are nearly identical for the `auto` type deduction:
 ```pmans
-  auto var = (...);           // (1) 
-  const auto cvar = (...);    // (2) 
-  auto &lref = (...);         // (3) 
-  const auto &clref = (...);  // (4) 
+  auto var = (...);           // (1) copy-ctor
+  const auto cvar = (...);    // (2) again non-reference
+  auto &lref = (...);         // (3) (...) binds to lvalue ref
+  const auto &clref = (...);  // (4) can bind to rvalue and lvalue
   /*b7*/ auto &&fref = (...);       // (5) special functionality! "forwarding reference"
-  const auto &&crref = (...); // (6) 
+  const auto &&crref = (...); // (6) (...) is rvalue
 ```
 - (1) initializes a non-reference variable,
 - (2) initialize a const non-reference variable,
@@ -280,10 +279,10 @@ With this knowledge let's try some things which do not work out with `auto`:
     Widget(const Widget &) = /*f*/ delete /*x*/;
   };
   Widget var{};
-  auto copy = var;          // (1) error: no way to copy
+  auto copy /*b1*/ = var;          // (1) error: no way to copy
   const auto copy = var;    // (2) error: no way to copy
-  auto &var = Widget{};     // (3) error: not an lvalue
-  const auto &var = ...;    // (4) always works
+  auto &var = Widget{};     // (3) error: rhs is not an lvalue
+  const auto &var = ...;    // (4) always works: rhs can be rvalue or lvalue
   /*b7*/ auto &&fref = ...;       // (5) always works
   const auto &&crref = var; // (6) error: not an rvalue
 ```
@@ -297,13 +296,13 @@ Let's look closer at the difference between (4) and (5) which both "always work"
 Some further example where the constness and value category is reflected in the reference:
 ```pmans
   Widget var{};
-  auto &&fref = var;                            // (1)
-  auto &&fref = std::as_const(var);             // (2)
-  auto &&fref = Widget{};                       // (3)
-  auto &&fref = std::move(std::as_const(var));  // (4)
+  auto &&fref = var;                            // (1) Widget &fref = ...;
+  auto &&fref = std::as_const(var);             // (2) const Widget &fref = ...
+  auto &&fref = Widget{};                       // (3) Widget &&fref = ...
+  auto &&fref = std::move(std::as_const(var));  // (4) const Widget &&fref = ...
 ```
 > What is the constness and value category of the references above?
-
+> - see above
 
 As `auto &&` references preserve the original constness and value category they are also *forwarding references*.
 
@@ -320,6 +319,7 @@ It is permitted to take references of references, e.g., using a type alias as in
   Widget var{};
   /*f4*/ Lref &&lref = var;           // (2) 'lref' is of type Widget&
   Widget & &&lref = var;       // hypothetical equivalent
+  Widget & &llref = ... // collapse to lvalue reference 
 ``` 
 This is called *reference collapsing* and the rule can be describes as: 
 - Whenever one or more lvalue references `&` are involved the whole construct decays to a lvalue reference `&` (1). 
@@ -346,6 +346,20 @@ func(std::forward<decltype(fref1)>(fref1)); // (1) call with lvalue reference
 func(std::forward<decltype(fref2)>(fref2)); // (2) call with rvalue reference
 ```
 > Why is it not feasible to implement perfect forwarding without forwarding references?
+> - value cat. might not be clear in advance
+> - you would have to work with overloading (this is very verbose for multiple arguments)
+```pmans
+func(const T arg1) {
+  nested_func(arg1); // see 'original' val cat & constness
+}
+func(T arg1) {
+  nested_func(arg1); // see 'original' val cat & constness
+}
+func(const T& arg1) {
+  nested_func(arg1); // see 'original' val cat & constness
+}
+```
+
 
 ## Closing remarks
 - We did not yet look at *move semantics* (which is the primary use case for moving things).

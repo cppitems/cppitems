@@ -19,18 +19,26 @@ Let's pick a simple user-defined type and consider the expected behavior (which 
 } // (6) dtors
 ```
 > Are these special member function (SMF) always implicitly available?
+> - if you provide user-defined versions: some are disables, exact rules are involved
+> - if members lack certain functionality: some are disabled, exact rules are involved
+
 > Can they be "turned on or off" explicitly?
+> - `... = delete;` turns them off
+> - `... = default;` does not turn them on but asks for the default (which can actually be `deleted`)
 
 Further common semantic embeddings are function calls:
 ```pmans
+  Widget /*f1*/ a{};
   auto pass_byvalue = [](Widget w) {}; 
-  pass_byvalue(a);                     // (6)
+  pass_byvalue(/*f1*/ a);                     // (6a) copy-ctor
+  pass_byvalue(std::move(/*f1*/ a));          // (6b) move-ctor
   auto pass_lref = [](Widget &w) {};   
-  pass_lref(a);                        // (7)
+  pass_lref(/*f1*/ a);                        // (7) no
   auto pass_rref = [](Widget &&w) {};  
-  pass_rref(std::move(a));             // (8)
+  pass_rref(std::move(/*f1*/ a));             // (8) no
 ```
 > Which of the special member functions are involved in (6)-(8)?
+> - see inline comments above
 
 Using the clang AST will list exactly this 6 special member functions for `Widget` which will look similar to this:
 ```pmans
@@ -48,18 +56,22 @@ Let's now look at each of the special member functions more closely.
 As we have seen above, which constructor is called depends on the semantic embedding.
 
 ### Default constructor
-> Describe the effect of a default constructor.
-> Which are common situations where it is invoked?
+> Describe the effect of a default constructor:
+> - construct object without any arguments provided
 
-The implicitly available default constructor of `Widget` initializes all members using the respective default constructors in order of declaration and looks like this:
+> Which are common situations where it is invoked?
+> - defining local variables.e.g.: `Widget a;`
+
+The implicitly available default constructor of `Widget` initializes all members using the respective default initialization in order of declaration and looks like this:
 ```pmans
   struct Widget {
     int i;
     double j;
     std::vector<double> d;
-    /*b*/ Widget() /*x*/ : i(), j(), d() {} // (1)
+    /*b*/ Widget() /*x*/  /* compile: default initialize members */ {} // (1)
   };
 ```
+Note: *default initialization* means calling the constructor for classes and doing nothing for non-array built-in types.
 
 It is implicitly available if *no other* user-defined constructors are present. Example with user-defined constructors:
 ```pmans
@@ -68,25 +80,32 @@ It is implicitly available if *no other* user-defined constructors are present. 
     double j;
     std::vector<double> d;
     /*b*/ Widget(int i) /*x*/ : i(i), j(i), d(i,j) {}  // user-defined ctor
-    /*b*/ Widget() /*x*/ : i(), j(), d() {}            // default makes still sense?
+    /*b*/ Widget() /*x*/  /* compile: default initialize members */ {}   // default makes still sense?
   };
 ```
 > Why does this rule make sense?
+> - the presence of a custom constructor (with arguments) indicates that a default construction might not make sense (or is even dangerous) as it might lead to an object in an undesired state.
 
 Further, it is *not* implicitly available if `const` or reference members are present (or if members have no accessible default construction mechanism). Examples:
 ```pmans
   struct Widget {
     const int i;
-    Widget() : i() {} // makes sense?
+    /*b*/ Widget() /*x*/ 
+     /* compile: default initialize members */ {} // makes sense? 
+                                 // no, 'i' is const and must be explicitly initialized 
   };
 ```
 ```pmans
   struct Widget {
     int &i;
-    Widget() : i() {} // makes sense?
+    /*b*/ Widget() /*x*/ 
+     /* compile: default initialize members */ {} // makes sense?
+                                 // no, 'i' is reference and must be explicitly initialized
   };
 ```
-> Why does this rule make sense?
+> Does this rule make sense?
+> - yes, members of reference-type cannot be default initialized
+>- yes, `const` members cannot be default initialized
 
 Default member initializers lift this last rule:
 ```pmans
@@ -94,7 +113,10 @@ Default member initializers lift this last rule:
     int &i = gobal;
     const int j = 5;
     std::vector<double> d;
-    Widget() : /* compile: use defaults for i and j */, d() {} // makes sense?
+    Widget() 
+    : /* compile: default initialize d, use defaults for i and j */ {} // makes sense? 
+                                                  // yes, defaults for 'i' and 'j' will be used
+                                                  // 'd' is default initialized -> def-ctor
   };
 ``` 
 
@@ -104,27 +126,35 @@ Default member initializers lift this last rule:
 >    int i;
 >    double j;
 >    std::vector<double> d;
->    Widget() : j(i), i(j) { // inverse order
->      // state of members here?
+>    Widget() : j(5), i(j), d()  { // 'j' put before 'i'
+>      // value of 'i' here? value of 'i' is indeterminate:
+>      // ... because 'j' is initialzed after 'i' and
+>      // ... 'j' is uninitialzed when used for 'i(j)'
 >    } 
 >  };
 >```
+> - because the order of initializations always happens in the order of declaration (and not in the order given in an user-provided initializer list).  
 
-> What happens (for a user-defined constructor) when a member is not initializes using the *initializer list*?
+> What happens (for a user-defined constructor) when a member is not initialized using the *initializer list*?
 >```pmans
 >  struct Widget {
->    int i;
+>    int i; 
 >    double j;
 >    std::vector<double> d;
 >    Widget() /* compile: no initializer list */ {
->      // state of members i and j here?
+>      // members i,j,d have been default initializeed here already
+>      // values of members i and j here? (indeterminate value)
 >    } 
 >  };
 >```
+> - member will be default initialized: for classes this means the default construtor is used; for built-in types (e.g., `i` and `j`) nothing is done
 
 ### Copy constructor
 > Describe the effect of a copy constructor. 
+> - construct an object using an lvalue reference to another object of the same type
+
 > Which are common situations where it is invoked?
+> - invoking functions with non-reference arguments
 
 A copy constructor is implicitly available  if no user-defined copy constructors are present. For `Widget` it looks like this:
 ```pmans
@@ -146,20 +176,32 @@ If all members support a copy constructor from a `const` reference, the argument
 > Why is `const` preferred by the rules? 
 >```pmans
 >   const Widget cw{};
->   Widget a(cw);
+>   Widget a(cw); // does not work for Widget(Widget &w)
+>   Widget a(Widget{}); / does not work for Widget(Widget &w)
 >```
+> - cases where an rvalue or a const object are passed do not work without `const`
 
 Further, it is *not* available if user-defined special member functions for moving (move constructor or move assignment) are present.
 
-> Informally, when is a copy constructor available implicitly?
-
+> Informally, when is a copy constructor not available implicitly?
+> - if one or more of the members do not support copying
+> - if a custom implementation for "moving SMFs" are present
 
 ### Move constructor
 > Describe the effect of a move constructor. 
+> - construct an object using an rvalue reference to another  object of the same type
+> - potentially using/moving resource of the other object
+
 > Which are common situations where it is invoked?
+> - whenever an rvalue is passed in a "construction situation"
 
 The move constructor is  implicitly available if no other user-defined special member functions are present (beside user-defined constructors) and all members are "allowed to be moved".
 > Why does this rule make sense?
+> - destructor is present: indicating special treatment which has to be considered also during "moving"
+> - copy constructor is present: possible special treatment when copying will likely also apply for move-construction
+> - copy/move assignment present: again, indicating that special treatment is required also for move-construction
+
+> Lecture on 29th of october ended here. Snippets discussed in the lecture: [q.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/006/q.cpp)
 
 For `Widget` the implicit move constructor looks like this:
 ```pmans
