@@ -15,7 +15,7 @@ public:
 
 private:
   Node *dataHead = nullptr; // root element
-  size_type dataSize = 0;
+  size_type dataSize = 0; // current number of nodes in list
 
 public:
   // default ctor
@@ -50,16 +50,20 @@ public:
     }
     dataSize = 0;
   }
-
+  // access current number of nodes in list 
   size_type size() { return dataSize; }
+  // obtain root element pointer
   Node *data() { return dataHead; }
+  // access front element
   value_type &front() { return dataHead->value; }
+  // push new list element at the front
   void push_front(const value_type &value) {
     Node *nextDataHead = new Node(value);
     nextDataHead->next = dataHead;
     dataHead = nextDataHead;
     ++dataSize;
   }
+  // pop element at the front
   void pop_front() {
     if (dataHead != nullptr) {
       Node *oldDataHead = dataHead;

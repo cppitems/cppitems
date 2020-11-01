@@ -1,4 +1,4 @@
-9 // item status
+1 // item status
 # Exercise EX1.3 (preliminary version)
 This exercise is part **three** of three parts of EX1. See also [Item 000](https://cppitems.github.io/#/item/000) for an overview and deadlines. The submission deadline for EX1 (all three parts) is **Mo 09.11.2020, 4pm**. The sources related to EX1.3 are available at [Item 008](https://github.com/cppitems/cppitems/tree/master/items/008).
 

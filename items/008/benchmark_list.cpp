@@ -9,16 +9,25 @@ using ListD = List<double>;
 // 'main' measures the runtime for move/copy construction and assignment
 int main() {
 
-  // example usage of list
-  {
-    ListD lst;
-    for (int i = 0; i < 1000; ++i) {
-      lst.push_front(i);
-    }
-    for (int i = 0; i < 1000; ++i) {
-      lst.pop_front();
-    }
-  }
+  // { // example usage of list
+  //   ListD lst;
+  //   size_t n = 10;
+  //   for (size_t i = 0; i < n; ++i) {
+  //     lst.push_front(i);
+  //   }
+  //   ListD::Node *iter = lst.data();
+  //   for (unsigned i = 0; i < lst.size(); ++i) {
+  //     std::cout << iter->value << std::endl;
+  //     iter = iter->next;
+  //   }
+  //   for (size_t i = 0; i < n; ++i) {
+  //     lst.pop_front();
+  //   }
+  //   for (unsigned i = 0; i < lst.size(); ++i) {
+  //     std::cout << iter->value << std::endl;
+  //     iter = iter->next;
+  //   }    
+  // }
 
   size_t size = 100'000; // vector length 0.1M == ~0.7MB
   size_t n = 10;         // iterations for averaging runtime
@@ -78,7 +87,7 @@ int main() {
     }
     auto varNode = var.data();
     auto wNode = w.data();
-    for (unsigned i = 0; i < var.size(); ++i) {
+    for (size_t i = 0; i < var.size(); ++i) {
       if (varNode->value != wNode->value) {
         std::cout << "List elements " << i
                   << " are not the same, should not happen!" << std::endl;
