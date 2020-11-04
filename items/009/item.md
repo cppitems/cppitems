@@ -1,5 +1,4 @@
 9 // item status
-
 # Lambda expressions
 We have already used "lambdas" in previous items. 
 Let's now look at *lambda expressions* in detail.
