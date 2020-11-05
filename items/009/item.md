@@ -1,10 +1,10 @@
-9 // item status
+1 // item status
 # Lambda expressions
 We have already used "lambdas" in previous items. 
 Let's now look at *lambda expressions* in detail.
 
 A *lambda expression* constructs a *function object*,i.e., a class with an overloaded `operator()`, which is able to capture variables which are valid at the source location where the lambda expression is evaluated. 
-This *function object* is of unnamed type is then ready to be invoked "like a function".
+This *function object* is of unnamed type and is ready to be invoked "like a function".
 The required parameters for the invocation are specific within the lambda expression.
 The invocation will execute the code block in the body of the lambda expression.
 Let's look at a simple example where the full lambda expression and the variable for the function object (`lambda`) are marked
@@ -24,11 +24,11 @@ The **body** holds the block of code which is executed when invoking the functio
   ...
   auto /*f6*/ lambda = [i, &w] (int b) -> int { /*b*/ return i + w.i + b; /*x*/ }; 
   ...
-  int res = /*f6*/ lambda(4); // execution/invokation of function object
+  int res = /*f6*/ lambda(4); // execution/invocation of function object
 ```
 > What is the maximum length for the code block in the body of a lambda? 
 
-The **capture clause** lists which variables of the "outside scope" are "made available" also inside the **body**:
+The **capture clause** lists which variables of the "outside scope" are captured for a use inside the **body**:
 ```pmans
   int /*b1*/ i{};
   Widget /*b1*/ w{}; 
@@ -189,10 +189,13 @@ A static member function (1) is additionally implemented, which is then returned
 
 ## Special member functions
 Up to now we did not provide user-defined special member functions of the inline classes we used to mimic lambda expressions (beside a custom constructor). 
-The standard prescribes rules for the SMFs for function objects constructed using lambdas: default construction (1) is marked as `delete`d;
-copy(2) and move(3) construction and destruction (6) are declared as `default`ed.
-This results in an implicitly `deleted` copy assignment (4) and an undeclared move assignment operator (5).
-Explicitly this looks like this for the introductory example above:
+The standard prescribes rules for the SMFs for function objects constructed using lambdas: 
+- default construction (1) is not available
+- copy(2) and move(3) construction are declared as `default`ed
+- copy assignment (4) is are declared as `delete`d
+- the destructor (6) is implicitly declared
+
+Again mimicking these rule within the inline class this looks like this for the introductory example above:
 ```pmans
 int i{};
 Widget w{};
@@ -203,14 +206,14 @@ private:
 
 public:
 
-  /*f*/ ClosureType /*x*/() = /*b7*/ delete; // (1)
+  /*f*/ ClosureType /*x*/() = /*b7*/ delete; // (1) not defined
   /*f*/ ClosureType /*x*/(const /*f*/ ClosureType /*x*/ &) = /*b7*/ default; // (2)
   /*f*/ ClosureType /*x*/(/*f*/ ClosureType /*x*/ &&) = /*b7*/ default; // (3)
   /*f*/ ClosureType /*x*/ &operator=(const /*f*/ ClosureType /*x*/ &) = /*b7*/ delete; // (4) 
-  // (5) ClosureType &operator=(ClosureType&&)
-  ~/*f*/ ClosureType /*x*/() = /*b7*/ default; // (6)
+  /*f*/ ClosureType /*x*/ &operator=(/*f*/ ClosureType /*x*/&&) = /*b7*/ delete; // (5)
+  ~/*f*/ ClosureType /*x*/() = /*b7*/ default; // (6) implicit
+  /*f*/ ClosureType /*x*/(int /*b1*/ i, Widget /*b2*/ &w) : /*b1*/ i(/*b1*/ i), /*b1*/ w(/*b1*/ w) {};   
 
-  /*f*/ ClosureType /*x*/(int /*b1*/ i, Widget /*b2*/ &w) : /*b1*/ i(/*b1*/ i), /*b1*/ w(/*b1*/ w) {};      
   auto operator()(int /*b1*/ b) const -> /*b3*/ int { /*b*/ return i + w.i + b; /*x*/}
 } /*b6*/ lambda(i,w); 
 int res = /*b6*/ lambda(4);
