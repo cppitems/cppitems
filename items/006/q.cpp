@@ -13,7 +13,7 @@ void take_rref(Widget &&rref) {}
 void func(Widget &lref, Widget &&rref) {
   // how to use rref?
   // 'rref' is lvalue !
-  // everything with a handle/name is treatd lvalue
+  // everything with a handle/name is treated lvalue
   take_lref(lref);
   take_rref(std::move(rref));
 }

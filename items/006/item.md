@@ -201,7 +201,7 @@ The move constructor is  implicitly available if no other user-defined special m
 > - copy constructor is present: possible special treatment when copying will likely also apply for move-construction
 > - copy/move assignment present: again, indicating that special treatment is required also for move-construction
 
-> Lecture on 29th of october ended here. Snippets discussed in the lecture: [q.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/006/q.cpp)
+> Lecture on 29th of october ended here. Snippets created/discussed in the lecture: [q.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/006/q.cpp)
 
 For `Widget` the implicit move constructor looks like this:
 ```pmans
@@ -247,10 +247,15 @@ Assignment is implicitly available in form of the assignment `operator=`:
 ```pmans
   Widget a, b;
   a /*b1*/ = b;                        // (4) copy-assign
-  a /*b1*/ = std::move(b);             // (5) move-assign 
+  a /*b1*/ = std::move(b);             // (5) move-assign
+  
 ```
 > Are there any special rules for the assignment `operator=` compared to any other non-static "ordinary" member-function? 
 How do the above lines look like when using the "member-function like" syntax?
+> - no, `operator=` overloads behaive like "normal" members functions (but might be implicitly available a SMF)
+> - above lines could be also written as `a.operator=(b);` and `a.operator=(std::move(b));`
+
+
 
 The signature and rules for the implicit availability of the copy (4) and move (5) assignment operators are very similar to the rules of their construction counterparts.
 What differs most is that no initializer list is available and a reference to a `Widget` is returned:
@@ -269,9 +274,11 @@ Overload resolution works in the same way as for the move and copy constructors:
 
 ### Copy assignment
 > Describe the effect of a copy assignment (operator). 
-> Which are common situations where it is invoked?
+> - a copy assignment "assigns" an object to an already existing object of the same type, e.g. `a = b;`.
+> - the detailed effect of the assignment depends on the implementation of the assignment operator, but commonly is is expected that `b` is not modified by the assignment and `a` will be in the same state as `b` after the assignment.
 
-A copy assignment operator is implicitly available if *no* user-defined copy assignment operators are present and all member are copy-assignable. For `Widget` it looks like this:
+
+A copy assignment operator is implicitly available if *no* user-defined copy constructors are present and all member are copy-assignable. For `Widget` it looks like this:
 ```pmans
   struct Widget  {
     int i;
@@ -292,16 +299,28 @@ Further, it is not available in the presence of `const` or reference type member
     /*b5*/ const int i;
     double /*b1*/ &j;
     /*f*/ Widget &operator=(const Widget &other) /*x*/{
-        this->i = other.i;   // makes sense?
-        this->j = other.j;   // makes sense?
+        this->i = other.i;   // (a) makes sense? does not work i is const
+        this->j = other.j;   // (b) makes sense? ref not reassignable
     }
   };
 ``` 
-> Why does this rule make sense?
+> Do this rules for implicit availability make sense?
+> - yes, if other move related SMFs are available indicates that a copy assignment might need "special care"
+> - yes, if members dont support copy assignment, the implicit form of the copy assignment is not possible.
 
 ### Move assignment
 > Describe the effect of a move assignment (operator). 
-> Which are common situations where it is invoked?
+> - a move assignment "assigns" an object to an already existing object of the same type, e.g. `a = std::move(b);`
+> - the detailed effect of the move assignment depends on the implementation of the operator;
+> - commonly is is expected that `a` represents the state of `b` after the assignment
+> - the state of `b` after the assignment is required to be valid and destructible, but its state is considereded "useless" and should not be used further. 
+>```pmans
+>{
+>  ... a,b; // assume a and b are owning resources
+>  a = std::move(b); // is dtor of b called after this line? no
+>  // does b still own resources here? it still might own resources but they should not be "actively used" 
+>} // dtors: here b is deconstructed and its resources (which it still might own) are freed
+>```
 
 A move assignment operator is implicitly available if *no* other special member functions are present (beside constructors).  For `Widget` it looks like this:
 ```pmans
@@ -318,7 +337,7 @@ A move assignment operator is implicitly available if *no* other special member 
   };  
 ```
 If `const` or reference type members are present, or if one of the members is not move-assignable, the move assignment operator is not available implicitly.
-> Why does this rule make sense?
+
 
 ## Forcing generation
 Up to now we looked at compiler generated special member function (1) to (5) for construction and assignment which look like this for `Widget`(for brevity here only with two members now):
@@ -326,7 +345,7 @@ Up to now we looked at compiler generated special member function (1) to (5) for
 struct Widget {
   int i;
   std::vector<double> j;
-  /*b*/ Widget() /*x*/: i(), j(){};                  // (1) default constructor
+  /*b*/ Widget() /*x*/ {};                           // (1) default constructor
   /*b*/ Widget(const Widget &w) /*x*/              // (2) copy constructor
       : i(w.i),                           // member wise copy-construction
         j(w.j){};                         // ...
@@ -345,7 +364,7 @@ struct Widget {
   };                                      //
 }; 
 ```
-These special member functions are available implicitly depending on the "class anatomy" of a user-defined type (see all the rules above).
+These special member functions are available implicitly depending on the "anatomy" of a user-defined type (see all the rules above).
 If a special member function is not implicitly available for a class, it is defined as *deleted*, otherwise it is *declared* and will be generated by the compiler as *inline public member* of the class.
 
 The user can force generation for any of the special member function like this:
@@ -361,7 +380,7 @@ struct /*f7*/ Widget {
 };
 ```
 For `Widget`, this will add exactly the implementations from above. 
-For a different type with a different "class anatomy" this might be different:
+For a different type with a different "anatomy" this might be different:
 ```pmans
 struct Other {
     int /*b1*/ &i; // "deletes" def-ctor, copy-assign (ref member)
@@ -379,14 +398,18 @@ struct Other {
   Other &operator=(Other &&w) = /*f8*/ default;
 };
 ```
-So requiring a SMF explicitly using `default` does not guarantee its availability, as it might be marked as *deleted*.
+So, requiring a SMF explicitly using `default` does not guarantee its availability, as it might be marked as *deleted*.
 On the other hand, it *is* possible to mark a SMF as *deleted* and therefore overrule (turn off) the implicit availability.
 
 ## Destruction
 > Describe the effect of a destructor. 
+> - allows to implement custom actions required to "properly" tear-down an object; e.g., releasing allocated resources
 
 The destruction mechanism for a user-defined type is triggered at the end of the lifetime of an object.
 > Example for when the lifetime of an object ends?
+> - local variable goes out of scope, e.g., a function body ends
+> - execution reaches the end of program: static variables reach end of lifetime
+> - a class object is deconstructed: lifetime of non-static members ends
 
 If no user-declared destructor is present, an implicitly declared constructor (with an empty body) is available. For `Widget` it looks like this:
 ```pmans
@@ -400,10 +423,12 @@ struct Widget {
 The destruction mechanism then first executes the body of the destructor followed by a destruction of the members in reverse order of declaration. Conceptually this looks like this for `Widget`:
 ```pmans
 // conceptual code, does not compile
-void /*f*/ deconstruction_mechanism /*x*/(T obj) {
+void /*f*/ deconstruction_mechanism /*x*/(T& obj) {
     ~obj();
-    obj.j.~std::vector<double>();    
-    obj.i.~int();
+    // deconstruct members in reverse order of declaration
+    for(auto& member: [reverse list of members of obj]) {
+      /*f*/ deconstruction_mechanism /*x*/(member);
+    }
 }
 {
   Widget w{};
@@ -411,17 +436,40 @@ void /*f*/ deconstruction_mechanism /*x*/(T obj) {
 
 ```
 ## What can go wrong?
-Let's consider a resource owning `Widget` with a user-defined constructor now:
+Let's consider a resource owning `Widget` with a user-defined constructor (which allocates memory) and a user-defined destructor (which frees the allocated memory):
 ```pmans
 struct WidgetOwns {
   double *data;
   size_t size;
-  WidgetOwns(size_t size) : size(size), data(new double[size]) {}
+  WidgetOwns(size_t size) : size(size), data(/*b3*/ new double[size]) {} // (1)
+  ~WidgetOwns() { /*b6*/ delete[] data;} // (6)
 }
 ```
-> Which SMF are available implicitly? 
-> Describe their effects and problems!
+> Which SMF are additionally implicitly available for the `Widget` above? 
+> - the user-defined destructor (6) disables the implicit availability of "move related" SMFs
+> - the user-defined constructor (1) disables the availability of the default constructor
+> - "copy related" SMFs are implicitly available 
+> ```bash
+> # dump AST revealing availability of SMFs for 'WidgetOwns'
+> clang-check -extra-arg=-std=c++17 -ast-dump --ast-dump-filter=WidgetOwns widgetowns.cpp --
+> ```
+> - the member `data` of type pointer-to-`double` is not considered as a reference
 
+> Describe problems resulting from the implicit availablity of "copy related SMFs":
+> - a copy constructor is implicitly available and will copy the value of `data`: the newly constructed object points to the same memory location
+>```pmans
+>Widget w1(10);
+>Widget w2 = w1; //  will copy pointer value
+>// what happens at destruction? "double free error" or related error
+>```
+> - a copy assignment is implicitly available and leads will assign the value of `data`: after assignment both objects point to the same memory resource; additionally the original value of `data` is overwritten 
+>```pmans
+>Widget w1(10);
+>Widget w2(10);
+>w2 = w1; //  will copy pointer value; value of 'w2.data' is lost 
+>// what happens at destruction? again "double free error" or related error
+>// additionally a memory leak was created as the memory allocated in the constructor of w2 is never freed/deleted.
+>```
 
 ## Links
 
