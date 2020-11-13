@@ -444,10 +444,10 @@ This snippet shows an example where a lambda captures a variable of the local sc
 int main() {
 
   auto lambda = []() {
-    int x{};
-    return [&x]() { return x + 5; }; // capturing a local by reference
+    int /*b1*/ x{};
+    return [&/*b1*/ x]() { return /*b1*/ x + 5; }; // capturing  local '/*f1*/ x' by reference
   }; // 'x' goes out of scope and is destroyed
-  auto res = lambda(); // lambda holds dangling reference to 'x'
+  auto res = lambda(); // lambda holds dangling reference to '/*f1*/ x'
 }
 ```
 
