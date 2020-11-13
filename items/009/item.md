@@ -27,6 +27,7 @@ The **body** holds the block of code which is executed when invoking the functio
   int res = /*f6*/ lambda(4); // execution/invocation of function object
 ```
 > What is the maximum length for the code block in the body of a lambda? 
+> - there is no restriction
 
 The **capture clause** lists which variables of the "outside scope" are captured for a use inside the **body**:
 ```pmans
@@ -36,6 +37,9 @@ The **capture clause** lists which variables of the "outside scope" are captured
   ...
 ```
 > Can the variable names be alerted during capturing?
+> - yesm, renaming is available
+>
+>
 
 > What is the effect of using `&w` compared to `w` in the capture clause?
 
@@ -140,16 +144,47 @@ void /*f6*/ invoke(FuncPtrRetVoid callable) { callable(); }
 ### Conversion functions 
 User-defined conversion functions allow to implement *implicit* and *explicit* conversions *form* a type *to* other types. 
 > What is difference between explicit and implicit conversions?
+> - a conversion is implicit if the type which is the target of the conversion is not explicitly stated in the code, but the required target type is deduced from the semantic embedding
+> - an explicit conversion does prescribe the target type of the conversion independent of the semantic embedding
+> - the specifier `explicit` can be used to disable the participation of a constructor or conversion function in implicit conversions 
+> - see examples below
 
 A simple example of a conversion function looks like this:
 ```pmans
    struct Widget{
      int m;
-     operator /*b5*/ int() { return /*b1*/ m; }; // (1) conversion from 'Widget' to 'int'
+     operator /*b5*/ int() { return /*b1*/ m; }; // (1) conversion function from 'Widget' to 'int'
    }; 
    int d = Widget{3}; // implicit conversion used
    int dd = 3 + Widget{3} * 4; // implicit conversion used
 ``` 
+
+A second example where a conversion function (2) and a constructor (1) participating in conversions looks like this:
+```pmans
+struct Widget1 {
+  int m;
+};
+
+struct Widget2 {
+  int m;
+  Widget2() : m(){};
+  // (1) converting constructor from 'Widget' to 'Widget2'
+  /*b9*/ explicit Widget2(const Widget1 &w) : m(w.m){};
+  // (2) conversion function from 'Widget2' to 'Widget'
+  /*b9*/ explicit operator Widget1() { return Widget1{m}; };
+};
+
+int main() {
+  Widget1 w1;
+  Widget2 w2;
+  w2 = w1; // implicit conversion using (1): error if (1) is specified if '/*f9*/ explicit'
+  w2 = static_cast<Widget2>(w1);  // explicit conversion using (1)
+  w1 = w2; // implicit conversion function (2): error if (2) is specified if '/*f9*/ explicit'
+  w1 = static_cast<Widget1>(w2);  // explicit conversion using (2)
+}
+```
+
+
 
 ### Lambda to function pointer conversion
 
@@ -184,9 +219,11 @@ The non-capturing lambda expression is implicitly converted to a function pointe
 A static member function (1) is additionally implemented, which is then returned  when a conversion to a function pointer is performed (2). 
 
 > When is this conversion to a function pointer useful?
+> - this conversion allows non-caputring lambdas to be used in situations requiring function pointers 
+> - this conversion provides a convenient way to define functions in a local scope
 
 > Why is this conversion not available if captures are present in the closure type?
-
+> - captures effectively create a stateful local function object; invoking the lambda requires access to this object; a function does not have this access
 ## Special member functions
 Up to now we did not provide user-defined special member functions of the inline classes we used to mimic lambda expressions (beside a custom constructor). 
 The standard prescribes rules for the SMFs for function objects constructed using lambdas: 
@@ -230,20 +267,23 @@ Exploring the effect of these rules for the SMFs can look like this:
 ```
 ## Evaluation time vs. execution time
 For capturing lambdas, it is important to differentiate the time of *evaluation* of a lambda expression and the subsequent *invocations/executions* of the constructed function object:
-the function object is constructed at *evaluation time* (1) of the lambda expression. At invocation time (2a)(2b) changes to variables captured by reference `&w` are reflected while the internal state to variables captured by value `x` is effective.
+the function object is constructed at *evaluation time* (1) of the lambda expression. At invocation time (2a)(2b) changes to variables captured by reference `&w` are reflected while the internal state to variables captured by value `x` is effective. In (1) additionally the keyword `mutable` is required to allow the incocation to change the internal state (i.e., `++x`) of the function object.
  ```pmans
 int x = 5; 
 Widget w{7}; 
-auto lambda = [x,&w](){ ++x; return w.m + x;} // (1)
+
+auto lambda = [x,&w]() /*b7*/ mutable { ++x; return w.m + x;} // (1)
 x = 100;
 w.m = 100;
 auto res1 = lambda(); // (2a)
+std::cout << res1 << std::endl;
 x = 0;
 w.m = 0;
 auto res2 = lambda(); // (2b)
 ```
-> What value do `res1` and `res2` have?
-
+> What are the values of `res1` and `res2`?
+> - `res1 = w.m + x;` where `x=5+1` and `w.m` = 7 
+> - `res2 = w.m + x;` where `x=6+1` and `w.m` = 0 
 ## Capture options
 Above, up to now we only cherry-picked captures explicitly by-reference or by-value for local variables in the outer scope.
 
@@ -280,20 +320,23 @@ Moving-constructing an object into function object is achieved using this syntax
 ```
 
 ### Enclosing object 
-> What happens if a lambda is defined in a scope with access to a `this` pointer and implicitly access the object pointed-to by `this`?
+> What happens if a lambda is defined in a scope with access to a `this` pointer and implicitly accesses the object pointed-to by `this`?
+> - if `this` is captured implicitly  (through  one of the two default capture modes `[=]` or `[&]`) the object referred to by this is captured by reference (see snippet below)
+
 
 ```pmans
-    struct Widget {
-      int /*b1*/ m;
-      auto member() {
-        return [=]() { return /*b1*/ m; };
-        return [=]() { return /*b7*/ this->m; }; // equivalent
-      }
-    };
-    auto lambda = Widget{9}.member();
-    std::cout << lambda() << std::endl;
+  struct Widget {
+    int /*b1*/ m;
+    auto member() {
+      return [/*b1*/ &]() { return /*b7*/ this->m; }; // (1) 'this' is captured by reference
+      return [/*b1*/ = ]() {return /*b1*/ m; };       // (2) 'this' is still captured by reference
+    }
+  };
+  auto func = []() {return Widget{9}.member(); };  // temporary 'Widget{9}' is destroyed after this line
+  auto lambda = func();                            // lambda hols a dangling reference to the temporary
+  std::cout << lambda() << std::endl;              // printing undefined value
 ```
-To explicitly control type of capture for the enclosing object `this` can be captured by-copy (1) or by reference (2):
+To explicitly control type of capture for the enclosing object `this` can be captured by copy (1) or by reference (2):
 ```pmans
     struct Widget {
       int m;
@@ -335,6 +378,7 @@ public:
 Finally lets look at some examples
 
 ## Custom comparator
+This snippet uses lambdas to setup custom comparators which are the used to sort a vector of `Widgets`:
 ```pmans
  struct Widget {
     int m;
@@ -346,20 +390,27 @@ Finally lets look at some examples
 
 
   int threshold = 2;
-  auto comp1 = [threshold](const Widget &a, const Widget &b) {
+  // this comparator uses a local variable(s) to configure a threshold for the sorting
+  // this could not be easily achieved with function pointer
+  auto /*b5*/ comp1 = [threshold](const Widget &a, const Widget &b) {
     return std::abs(a.m - b.m) > threshold ? a.m < b.m : false;
   };
   auto comp2 = [](const Widget &a, const Widget &b) {
     return a.m < b.m;
   };  
 
-  std::sort(vec.begin(), vec.end(), comp1);
+  // bool = comp1(item, item);
+  // if true: a is smaller
+  // if false: b is not smaller
+  std::sort(vec.begin(), vec.end(), /*b5*/ comp1); 
+
   for (auto&& item : vec) {
     std::cout << item.m << " ";
   }
 ```
 
 ## Custom predicate
+This snippet uses a lambda to setup a predicate which is used to count the `Widget`s in a vector, which have the property tested by the predicate:
 ```pmans
   struct Widget {
     int m;
@@ -369,32 +420,34 @@ Finally lets look at some examples
   vec.push_back(Widget{5});
   vec.push_back(Widget{4});
 
-  int lower = 2;
-  int upper = 5;
-  auto lambda = [&t1 = lower, &t2 = upper](const Widget &a) {
+  int /*b5*/ lower = 2;
+  int /*b5*/ upper = 5;
+  // 
+  auto /*f6*/ lambda = [&t1 = /*b5*/ lower, &t2 = /*b5*/ upper](const Widget &a) {
     return a.m > t1 && a.m < t2;
   };
 
-  {
-    auto count = std::count_if(vec.begin(), vec.end(), lambda);
+  { // count elements using predicate
+    auto count = std::count_if(vec.begin(), vec.end(), /*f6*/ lambda);
     std::cout << count << std::endl;
   }
-  ++upper;
-  {
-    auto count = std::count_if(vec.begin(), vec.end(), lambda);
+  ++/*b5*/ upper; // increasing upper threshold of predicate
+  { // count elements using predicate
+    auto count = std::count_if(vec.begin(), vec.end(), /*f6*/ lambda);
     std::cout << count << std::endl;
   }
 ```
 
 ## Dangling capture
+This snippet shows an example where a lambda captures a variable of the local scope by reference. This leads to a dangling reference if the lambda is invoked after this variable has gone out of scope:
 ```pmans
 int main() {
 
   auto lambda = []() {
     int x{};
-    return [&x]() { return x + 5; };
-  };
-  auto res = lambda();
+    return [&x]() { return x + 5; }; // capturing a local by reference
+  }; // 'x' goes out of scope and is destroyed
+  auto res = lambda(); // lambda holds dangling reference to 'x'
 }
 ```
 

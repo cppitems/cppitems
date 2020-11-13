@@ -1,5 +1,4 @@
-9 // item status
-
+1 // item status
 # Function templates
 In C++ has *templates* which allow to implement generic functionality.
 Let's assume we want to implement a non-member function `swap` which exchanges the contents of two objects of equal type `Widget`:
@@ -23,6 +22,8 @@ void swap(Type3 &a, Type3 &b) { ... };
 void swap(Type4 &a, Type4 &b) { ... };
 ```
 > Is the "overload approach" good practice if the number of types to be supported is large?
+> - no, if implementation `{ ... }` is identical for many types 
+> - yes, if implementation differs for each type
 
 If the implementation of `swap` does not depend on the type of the parameters, e.g., if the implementation for all above types looks like this
 ```pmans
@@ -35,15 +36,17 @@ void swap(/*b2*/ T& a, /*b2*/ T& b) {
 ```
 implementing `swap` as a *function template* is advantageous and looks like this:
 ```pmans
-/*f*/ template<typename /*x*/ /*b1*/ T/*f1*/ > // template function with a "type template parameter" 'T' 
+/*f*/ template<typename /*x*/ /*b1*/ T/*f1*/  = Type1> // template function with a "type template parameter" 'T' 
 void swap(/*b2*/ T& a, /*b2*/ T& b) {
   /*b1*/ T tmp(std::move(a));
   a = std::move(b);
   b = std::move(tmp);
 }; 
 ```
-> What are the required "prerequisites" for type `T` to be "compatible"
- with this template function?
+> What are the required "prerequisites" for type `T` to be "compatible" with this function template?
+ > - move-constructable
+ > - move-assignable
+ > - is supporting only the copy version also OK? yes, if move is not present, copy is used automatically: rvalues can bind to the const lvalue references of copy-ctor and move-assign
 
 The definition of a template (function) is literally a template for the compiler:
 - If the templated function **is not selected** to be used (anywhere in the translation unit), no code is generated for the (not selected) function.
@@ -57,32 +60,32 @@ There are three mechanism which lead to the determination of function template a
 ```pmans
   Widget a{1};
   Widget b{2};
-  swap/*b*/ <Widget> /*x*/(a, b); // instantiates void swap<int>(int&, int&): error not matching/no conversion 
+  swap/*b*/ <Widget> /*x*/(a, b); // instantiates /*f*/ void swap<Widget>(Widget&, Widget&) /*x*/
 ```
 - deduction from function arguments 
 ```pmans
   /*f6*/ Widget a{1};
   /*f6*/ Widget b{2};
-  swap(/*b1*/ a, /*b1*/ b);              // instantiates void swap<Widget>(Widget&, Widget&)
-  // swap<Widget>(a, b);   // equivalent explicit instantiation
+  swap(/*b1*/ a, /*b1*/ b);         // instantiates /*f*/ void swap<Widget>(Widget&, Widget&) /*x*/
 ```
 - default arguments for template parameters are defined 
 ```pmans
   template <typename /*b1*/ T, typename /*b1*/ D = /*f*/ decltype(T().m) /*x*/> 
   void swap(/*b3*/ T& a, /*b3*/ T& b) {
-    /*b1*/ T tmp(std::move(a));
-    a = std::move(b);
-    b = std::move(tmp);
+    /*b1*/ D tmp(std::move(a.m));
+    a.m = std::move(b.m);
+    b.m = std::move(tmp);
   };
   // usage
   /*f6*/ Widget a{1};
   /*f6*/ Widget b{2};  
-  swap<Widget>(/*b1*/ a, /*b1*/ b);   // instantiates void swap<Widget,int>(Widget&, Widget&)
+  swap<Widget>(/*b1*/ a, /*b1*/ b);   // instantiates /*f*/ void swap<Widget,int>(Widget&, Widget&) /*x*/ 
 ```
 
 > Which additional requirement for `Widget` (for successful instantiation) is introduced in the last snippet above?
+> - existence of a `m` member which is move-assignable and move-construtable
 
-> switch to swap.cpp
+> See [swap.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/010/swap.cpp)
 
 ## Function template argument deduction
 Let's look closer at the rules for deducing template arguments from function arguments. 
@@ -101,26 +104,26 @@ The rules for template argument deduction are also applied during `auto` type de
 /*b5*/ auto arg = (/*b4*/ expr);
 ```
 > Is this really exactly the same mechanism?
+> - yes, but one exception concerning `std::initializer_list`. See [auto.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/010/auto.cpp)
 
-> switch to auto.cpp
 
 In the following we will consider these four different scenarios for deduction:
 ```pmans
 template <typename /*f4*/ AUTO> 
-void func(/*b4*/ AUTO arg) {}; // pass-by-value
+void func(/*f4*/ AUTO arg) {}; // pass-by-value
 template <typename /*f4*/ AUTO> 
-void func(/*b5*/ AUTO& arg) {}; // pass-by-reference
+void func(/*f4*/ AUTO/*b1*/ & arg) {}; // pass-by-reference
 template <typename /*f4*/ AUTO> 
-void func(/*b*/ const AUTO& /*x*/ arg) {}; // pass-by-reference-to-const
+void func(/*b5*/ const /*f4*/ AUTO/*b1*/ & arg) {}; // pass-by-reference-to-const
 template <typename /*f4*/ AUTO> 
-void func(/*b*/ AUTO&& /*x*/ arg) {}; // pass-by-forwarding-references
+void func(/*f4*/ AUTO/*b2*/ && arg) {}; // pass-by-forwarding-references
 ```
 
 ### Pass-by-value
 If the function parameter is passed by-value the function template looks like this:
 ```pmans
 template <typename /*f4*/ AUTO> 
-void func(/*b4*/ AUTO arg) {};
+void func(/*f4*/ AUTO arg) {};
 ```
 The following snippet illustrates the deduction for different value categories and types:
 ```pmans
@@ -141,19 +144,21 @@ func(cptr);                 // /*f*/ func<const Widget *>(const Widget *arg) /*x
 func(cptrc);                // /*f*/ func<const Widget *>(const Widget *arg) /*x*/ for const ptr to const
 ```
 To summarize for a pass-by-value function parameter: 
-- `const` is dropped
-- reference-ness is not reflected in the deduced types
+- `const` is dropped 
+- reference-ness is not reflected in the deduced types (makes sense, its a copy not related to the reference)
 - for pointers const access to the pointee ist not dropped
 - the two deduced types (template parameter type and function paramter type) are identical
 
-> Do these rules make sense?
-
-> switch to deduction_val.cpp
+> Do these rules for pass-by-value make sense?
+> - const-ness is not preserved(dropped): this makes sense, as everything is pass-by-value
+> - reference-ness is not preserved: makes sense, we asked for a copy
+> - pointers: passing a pointer-to-const preserves the constness; this is what is expected from the caller site.
+> - See [deduction_val.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/010/deduction_val.cpp) for the full example code
 ### Pass-by-reference
 If the function parameter is passed by-reference the function template looks like this:
 ```pmans
 template <typename /*f4*/ AUTO> 
-void func(/*b5*/ AUTO& arg) {};
+void func(/*f4*/ AUTO/*b1*/ & arg) {};
 ```
 The following snippet again illustrates the deduction for different value categories and types:
 ```pmans
@@ -162,13 +167,13 @@ Widget &lref = lval;
 const Widget &clref = lval;  
 Widget *ptr = &lval; 
 const Widget *cptr = &lval; 
-const Widget *const cptrc = &lval; 
+const Widget *const ptrc = &lval; 
 func(lval);                 // /*f*/ func<Widget>(Widget &arg) /*x*/ for lvalue
 func(lref);                 // /*f*/ func<Widget>(Widget &arg) /*x*/ for lvalue reference
 func(clref);                // /*f*/ func<const Widget>(const Widget &arg) /*x*/ for lvalue reference to const   
 func(ptr);                  // /*f*/ func<Widget *>(Widget *&arg) /*x*/ for ptr
 func(cptr);                 // /*f*/ func<const Widget *>(const Widget *&arg) /*x*/ for ptr to const
-func(cptrc);                // /*f*/ func<const Widget *const>(const Widget *& const arg) /*x*/ for const ptr to const
+func(cptrc);                // /*f*/ func<const Widget *const>(const Widget *const &arg) /*x*/ for const ptr to const
 ```
 To summarize for a pass-by-reference function parameter: 
 - `const`-ness is preserved in both deduced types
@@ -178,14 +183,16 @@ To summarize for a pass-by-reference function parameter:
 
 
 > Do these rules make sense?
-
-> switch to deduction_lref.cpp
+> - const-ness is preserved: this is what is expected when passing a const or const reference
+> - const-ness is also preseved in the template parameter type: this allows to specialize the implementation if a function parameter is const
+> - the function parameter type is always a lvalue reference: this is what we asked for
+> - See [deduction_lref.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/010/deduction_lref.cpp) for the full sources of the example
 
 ### Pass-by-reference-to-const 
 If the function parameter is passed by a lvalue-reference to const, the function template looks like this:
 ```pmans
 template <typename /*f4*/ AUTO> 
-void func(/*b*/ const AUTO& /*x*/ arg) {};
+void func(/*b5*/ const /*f4*/ AUTO/*b1*/ & arg) {};
 ```
 And again, following snippet illustrates the deduction for different value categories and types:
 ```pmans
@@ -200,16 +207,25 @@ func(clref);                // /*f*/ func<Widget>(const Widget &arg) /*x*/ for l
 func(Widget{});             // /*f*/ func<Widget>(const Widget &arg) /*x*/ for rvalue/reference  
 func(ptr);                  // /*f*/ func<Widget *>(Widget *const &arg) /*x*/ for ptr
 func(cptr);                 // /*f*/ func<const Widget *>(const Widget *const &arg) /*x*/ for ptr to const
-func(cptrc);                // /*f*/ func<const Widget *const>(const Widget *const &arg) /*x*/ for const ptr to const
+func(cptrc);                // /*f*/ func<const Widget *>(const Widget *const &arg) /*x*/ for const ptr to const
 ```
-To summarize for a pass-by-reference to const function parameter: 
+To summarize for a pass-by-reference-to-const function parameter: 
 - the "forced" `const`-ness is not reflected in the type of the template parameter
 - function parameter type is always a lvalue reference
 - the template parameter is never of reference type
 
 > Do these rules make sense?
-
-> switch to deduction_clref.cpp
+> - "original" const-ness is not preserved: this is ok, everything is passed as const anyway
+> - "original" reference type is lost: this is what we asked for: to always bind to an lvalue reference to const
+> - pointer: const is "forced" for the pointer type itself,e.g., `Widget *const`: this is expected; see below snippet for a syntax which reveals this:
+>```pmans
+>  Widget a{1};
+>  using Pointer = Widget *; // equivalent: Widget *
+>  using ConstPointer = const Pointer; // equivalent: Widget *const
+>  using PointerToConst = const Widget *; // equivalent: const Widget *
+>  using ConstPointerToConst = const PointerToConst; // equivalent: const Widget *const
+>```
+> - See [deduction_clref.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/010/deduction_clref.cpp) for the full sources of the example
 
 Note: the same deduction rules apply analogously when using a const rvalue-reference which look like this:
 ```pmans
@@ -222,7 +238,7 @@ Then simply all occurrences of `&` in the deduced types are replaced with `&&`.
 In the semantic embedding of a function template the syntax for a non-const rvalue reference has a special meaning:
 ```pmans
 template <typename /*f4*/ AUTO> 
-void func(/*b*/ AUTO&& /*x*/ arg) {};
+void func(/*f4*/ AUTO/*b2*/ && arg) {};
 ``` 
 Here `&&` denotes a so-called *forwarding reference* (or also *universal reference*) with special deduction rules.
 The following snippet illustrates the deduction when using a forwarding reference:
@@ -238,7 +254,7 @@ func(lref);                 // /*f*/ func<Widget &>(Widget &arg) /*x*/ for lvalu
 func(clref);                // /*f*/ func<const Widget &>(const Widget & arg) /*x*/ for lvalue reference to const
 func(Widget{});             // /*f*/ func<Widget>(Widget &&arg) /*x*/ for rvalue
 func(std::move(lval));      // /*f*/ func<Widget>(Widget &&arg) /*x*/ for rvalue reference
-func(std::move(clref));     // /*f*/ func<const Widget>(Widget &&arg) /*x*/ for rvalue reference to const    
+func(std::move(clref));     // /*f*/ func<const Widget>(const Widget &&arg) /*x*/ for rvalue reference to const    
 func(ptr);                  // /*f*/ func<Widget *&>(Widget *&arg) /*x*/ for ptr
 func(cptr);                 // /*f*/ func<const Widget *&>(const Widget *&arg) /*x*/ for ptr to const
 func(cptrc);                // /*f*/ func<const Widget *const &>(const Widget *const &arg) /*x*/ for const ptr to const
@@ -248,8 +264,9 @@ To summarize when using a forwarding reference as function parameter:
 - the template parameter is a reference type if the expression was an lvalue; for rvalue it is non-reference type
 
 > Do these rules make sense?
-
-> switch to deduction_fref.cpp
+> - the rules aim to achieve a specific goal: to preserve the value category and const-ness of the originally passed expression (to be able to forward it later): this is achieved
+> - the template parameter is non-reference for rvalues: this is ok (instead of beeing of rvalue reference) as it has no effect on reference collapsing (which applied during forwarding)
+> - See [deduction_fref.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/010/deduction_fref.cpp) for the full sources of the example
 
 Note:
 This preservation of the "original" value category and const-ness in the type of the function parameters sets the stage for "perfect forwarding" of parameters to nested functions. To achieve this, additionally the "reference collapsing rules" and `std::forward` (which makes use of these rules) are required (see also  the end of [Item004](https://cppitems.github.io/#/item/004) where we already briefly mentioned perfect forwarding in the context of `auto` type deduction). 
@@ -262,6 +279,8 @@ Looking closer, *instantiation* is is separated in two stages:
 - then, all occurrences of these template parameters are *substituted* (replaced) with the respective arguments
 
 > Can a argument substitution fail? Are there different types of failure? 
+> - yes can fail: example: type does not support requirements
+> - yes, depends "where" an error occurres
 
 Let's consider two examples showcasing the effect of errors occurring from the evaluation of
 - expressions with "direct influence" on the function type and the template parameters, and
@@ -292,6 +311,7 @@ note: in instantiation of function template specialization 'swap<Widget>' reques
   swap(a, b);
   ^            
 ```
+> - See [failure1.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/010/failure1.cpp) for the full sources of the example
 ### **S**ubstitution **f**ailure **i**s **n**ot **a**n **e**rror 
 Keeping everything the same as above but removing the type alias in the function body and instead introducing a second type template parameter `D` looks like this:
 ```pmans
@@ -322,7 +342,10 @@ void swap(T &a, T &b) {
 This message reveals the effect of a substitution error in expressions with "direct influence" on the function type and the template parameters: the error does not lead to a failed compilation but "silently" discards the function template. 
 If we extend the example by adding matching function, compilation succeeds.
 
+> - See [failure2.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/010/failure2.cpp) for the full sources of the example
+
 Note: This *SFINAE* property of the substitution mechanism  is used (also/primarily in the stdlib) to guide the selection of templates based on properties of determined template parameters.
+
 
 # Links
 - Function template https://en.cppreference.com/w/cpp/language/function_template

@@ -2,11 +2,13 @@
 
 struct Widget {
   int m;
-//   Widget &operator=(Widget &other) = delete;
+//   Widget &operator=(Widget &other) = delete; // option forcing an additional error
 };
 
+// example for an error after substitution in the "body"
+
 template <typename T> void swap(T &a, T &b) {
-  using D = typename T::nonexisting;
+  using D = typename T::nonexisting; // (1) error when evaluating this expression after substituting T 
   T tmp(std::move(a));
   a = std::move(b);
   b = std::move(tmp);
@@ -15,5 +17,5 @@ template <typename T> void swap(T &a, T &b) {
 int main() {
   Widget a{1};
   Widget b{2};
-  swap(a, b);
+  swap(a, b); // error: pointing to (1)
 }

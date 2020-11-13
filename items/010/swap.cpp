@@ -1,40 +1,47 @@
 #include <utility>
 
-// adoptions
-// - second widget2 (add second template parameter)
-// - explicitly specify incompatible parameter 
-// - remove default for D
-// - overload
-// - check symbols using nm  (have second widget type)
-// - template argument nested in the paramter type
+// modifications of swap
 
 struct Widget {
   int m;
 };
 
-template <typename T>
-void swap(T &a, T &b) {
-  T tmp(std::move(a));
+struct Widget2 {
+  int m;
+};
+
+// non-template
+void swap(Widget &a, Widget &b) {
+  Widget tmp(std::move(a));
   a = std::move(b);
   b = std::move(tmp);
 };
 
-// void swap(Widget &a, Widget &b) {
-//   Widget tmp(std::move(a));
-//   a = std::move(b);
-//   b = std::move(tmp);
-// };
+// template swapping .m directly and requiring a member m
+template <typename T, typename D = decltype(T().m) > void swap(T &a, T &b) {
+  D tmp(std::move(a.m));
+  a.m = std::move(b.m);
+  b.m = std::move(tmp);
+};
 
-
-// template <typename T, typename D = decltype(T().m)>
-// void swap(T &a, T &b) {
+// original template 
+// template <typename T> void swap(T &a, T &b) {
 //   T tmp(std::move(a));
 //   a = std::move(b);
 //   b = std::move(tmp);
 // };
 
+
 int func() {
-  Widget a{1};
-  Widget b{2};
-  swap(a, b);
+  {
+    Widget a{1};
+    Widget b{2};
+    swap(a, b);
+  }
+  {
+    Widget2 a{1};
+    Widget2 b{2};
+    swap(a, b);
+  }
+
 }

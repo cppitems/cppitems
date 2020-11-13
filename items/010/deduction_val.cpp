@@ -49,13 +49,16 @@ int main() {
 //   }
 //   {
 //     Widget a{1};
-//     const Widget *expr = &a; // ptr to const
-//     func(expr);              // func<const Widget *>(const Widget *arg)
-//     auto arg = (expr);       // const Widget *arg = ...
+//     using PointerToConst = const Widget *;
+//     PointerToConst expr = &a; // ptr to const
+//     func(expr);               // func<const Widget *>(const Widget *arg)
+//     auto arg = (expr);        // const Widget *arg = ...
 //   }
 //   {
 //     Widget a{1};
-//     const Widget *const expr = &a; // const ptr to const
+//     using PointerToConst = const Widget *;
+//     using ConstPointerToConst = const PointerToConst;
+//     ConstPointerToConst expr = &a; // const ptr to const
 //     func(expr);                    // func<const Widget *>(const Widget *arg)
 //     auto arg = (expr);             // const Widget *arg = ...
 //   }

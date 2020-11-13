@@ -36,16 +36,16 @@ int main() {
 //     func(expr);               // func<Widget *>(Widget *const &arg) for ptr
 //     const auto &arg = (expr); // Widget *const &arg = ...
 //   }
-  {
-    Widget a{1};
-    const Widget *expr = &a; // ptr to const
-    func(expr); // func<const Widget *>(const Widget *const &arg) for ptr to const
-    const auto &arg = (expr); // const Widget *const &arg = ...
-  }
 //   {
 //     Widget a{1};
-//     const Widget *const expr = &a; // const ptr to const
-//     func(expr); // func<const Widget *const>(const Widget *const &arg) for const ptr to const
-//     const auto &arg = (expr); // const Widget *const & ar = ...
+//     const Widget *expr = &a; // ptr to const
+//     func(expr); // func<const Widget *>(const Widget *const &arg) for ptr to const
+//     const auto &arg = (expr); // const Widget *const &arg = ...
 //   }
+  {
+    Widget a{1};
+    const Widget *const expr = &a; // const ptr to const
+    func(expr); // func<const Widget *const>(const Widget *const &arg) for const ptr to const
+    const auto &arg = (expr); // const Widget *const & ar = ...
+  }
 }
