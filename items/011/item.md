@@ -5,8 +5,8 @@ This exercise is part **one** of three parts of EX2. See also [Item 000](https:/
 
 ## Task description
 
-In this exercise it is your task to adopt an the implementation of the functions in `algorithms.h` ([link](https://raw.githubusercontent.com/cppitems/cppitems/master/items/011/algorithms.h)):
-These functions are function templates with a single *type template parameter* `C` and implement algorithms tailored to an "container type" `C` which supports access to elements using the `operator[]` and has a `size()` member (aka a `std::vector` in our case).
+In this exercise it is your task to adopt the implementation of the functions in `algorithms.h` ([link](https://raw.githubusercontent.com/cppitems/cppitems/master/items/011/algorithms.h)):
+These functions are function templates with a single *type template parameter* `C` and implement algorithms tailored to a "container type" `C` which supports access to elements using the `operator[]` and has a `size()` member (aka a `std::vector` in our case).
 For example, the `print` function which prints the content of the container to `std::cout` looks like this:
 ```pmans
 /*f*/ template <typename /*b1*/ C> /*x*/ 
@@ -32,7 +32,7 @@ auto /*f5*/ print(const std::string &text, const /*b1*/ C &ctnr) {
   std::cout << std::endl;
 };
 ```
-The function now uses the `std::for_each` function template (as `std::vector` provides sufficient support for *iterators*) and used a *lambda expression* to create a *function object* `func` to implement the function to be applied to each element in the container.
+The function now uses the `std::for_each` function template (as `std::vector` provides sufficient support for *iterators*) and uses a *lambda expression* to create a *function object* `func` to implement the function to be applied to each element in the container.
 
 Another example of the adoption you should perform is the `populate_with_value` function template which originally looks like this:
 ```pmans
@@ -70,13 +70,13 @@ Further resources are:
 - std::vector: https://en.cppreference.com/w/cpp/container/vector
 
 ## Testing
-In `test_algorithms.cpp`  ([link](https://raw.githubusercontent.com/cppitems/cppitems/master/items/011/test_algorithms.cpp)) provides small tests for each of the algorithms in `algorithms.h`. We will also use these tests to test your submission. 
+In `test_algorithms.cpp`  ([link](https://raw.githubusercontent.com/cppitems/cppitems/master/items/011/test_algorithms.cpp)) provides small tests/logging for each of the algorithms in `algorithms.h`. We will also use these tests to test your submission. 
 The tests apply each of the algorithms in `algorithms.h` with a `std::vector<int>` as first argument.
 For example the test for the `populate_with_value` function template is called like this:
 ```pmans
   ...
   /*f*/ populate_with_value /*x*/(/*b3*/ vec, value_type{1});
-  print("populate_with_value", vec);
+  print("populate_with_value", vec); // logging the result
 ```
 
 ## Submission
