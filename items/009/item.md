@@ -37,7 +37,7 @@ The **capture clause** lists which variables of the "outside scope" are captured
   ...
 ```
 > Can the variable names be alerted during capturing?
-> - yesm, renaming is available
+> - yes, renaming is available
 >
 >
 
@@ -219,7 +219,7 @@ The non-capturing lambda expression is implicitly converted to a function pointe
 A static member function (1) is additionally implemented, which is then returned  when a conversion to a function pointer is performed (2). 
 
 > When is this conversion to a function pointer useful?
-> - this conversion allows non-caputring lambdas to be used in situations requiring function pointers 
+> - this conversion allows non-capturing lambdas to be used in situations requiring function pointers 
 > - this conversion provides a convenient way to define functions in a local scope
 
 > Why is this conversion not available if captures are present in the closure type?
@@ -267,7 +267,7 @@ Exploring the effect of these rules for the SMFs can look like this:
 ```
 ## Evaluation time vs. execution time
 For capturing lambdas, it is important to differentiate the time of *evaluation* of a lambda expression and the subsequent *invocations/executions* of the constructed function object:
-the function object is constructed at *evaluation time* (1) of the lambda expression. At invocation time (2a)(2b) changes to variables captured by reference `&w` are reflected while the internal state to variables captured by value `x` is effective. In (1) additionally the keyword `mutable` is required to allow the incocation to change the internal state (i.e., `++x`) of the function object.
+the function object is constructed at *evaluation time* (1) of the lambda expression. At invocation time (2a)(2b) changes to variables captured by reference `&w` are reflected while the internal state to variables captured by value `x` is effective. In (1) additionally the keyword `mutable` is required to allow the invocation to change the internal state (i.e., `++x`) of the function object.
  ```pmans
 int x = 5; 
 Widget w{7}; 

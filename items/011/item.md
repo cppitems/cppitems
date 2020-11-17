@@ -1,11 +1,11 @@
-9 // item status
-# Exercise 2.1 (Preliminary)
+1 // item status
+# Exercise 2.1
 
 This exercise is part **one** of three parts of EX2. See also [Item 000](https://cppitems.github.io/#/item/000) for an overview and deadlines. The submission deadline for EX2 (all three parts) is **Mo 30.11.2020, 4pm**. The sources related to EX2.1 are available at [Item 011](https://github.com/cppitems/cppitems/tree/master/items/011).
 
 ## Task description
 
-In this exercise it is your task to adopt an the implementation of the functions in `algorithms.h`:
+In this exercise it is your task to adopt an the implementation of the functions in `algorithms.h` ([link](https://raw.githubusercontent.com/cppitems/cppitems/master/items/011/algorithms.h)):
 These functions are function templates with a single *type template parameter* `C` and implement algorithms tailored to an "container type" `C` which supports access to elements using the `operator[]` and has a `size()` member (aka a `std::vector` in our case).
 For example, the `print` function which prints the content of the container to `std::cout` looks like this:
 ```pmans
@@ -51,13 +51,15 @@ auto populate_with_value(/*b1*/ C &ctnr, typename /*b1*/ C::value_type value) {
 };
 ```
 
-For an overview and documentation of all algortihms available in the algorithms library of the C++ standard library (`#include <algorithm>`) see [https://en.cppreference.com/w/cpp/algorithm]([https://en.cppreference.com/w/cpp/algorithm).
+For an overview and documentation of all algorithms available in the algorithms library of the C++ standard library (`#include <algorithm>`) see [https://en.cppreference.com/w/cpp/algorithm]([https://en.cppreference.com/w/cpp/algorithm).
 
 Note: after you finished your modifications in `algorithms.h`, no explicit `for`-loops should be present.
 
+Prepare yourself for a discussion of your implementation and try to identify advantages and disadvantages of using "algorithms form the stdlib" vs. "classic `for`-loops".
+
 ## A mini introduction on using iterators with `std::vector`
-We did not discuss *iterators* in detail in the lectures yet, but it is undoubtly possible to utilize algorithms from `<algorithm>` for the tasks required in this exercise (`std::vector`) without deep knowlegde about iterators. 
-Nevertheless to provide a minimal guideline, `vector_iterators.cpp` contains some examples using iterators and a `std::vector<double>`.
+We did not discuss *iterators* in detail in the lectures yet. Nevertheless, you have to utilize algorithms from `<algorithm>` for the tasks required in this exercise (`std::vector`); this is possible without deep knowledge of the iterator concept. 
+To provide a minimal guideline, `vector_iterators.cpp` ([link](https://raw.githubusercontent.com/cppitems/cppitems/master/items/011/vector_iterators.cpp)) contains some examples using iterators and a `std::vector<double>`, which cover the use cases in this exercise.
 
 Further resources are:
 
@@ -68,12 +70,12 @@ Further resources are:
 - std::vector: https://en.cppreference.com/w/cpp/container/vector
 
 ## Testing
-In `test_algorithms.cpp` provides small tests for each of the algorithms in `algorithms.h`. We will also use these tests to test your submission. 
+In `test_algorithms.cpp`  ([link](https://raw.githubusercontent.com/cppitems/cppitems/master/items/011/test_algorithms.cpp)) provides small tests for each of the algorithms in `algorithms.h`. We will also use these tests to test your submission. 
 The tests apply each of the algorithms in `algorithms.h` with a `std::vector<int>` as first argument.
 For example the test for the `populate_with_value` function template is called like this:
 ```pmans
   ...
-  /*f*/ populate_with_value /*x*/ (/*b3*/ vec, value_type{1});
+  /*f*/ populate_with_value /*x*/(/*b3*/ vec, value_type{1});
   print("populate_with_value", vec);
 ```
 

@@ -19,21 +19,22 @@ int main() {
     value = *iter; // access value using dereferenced iterator
   }
 
-  // range based for-loop (requires and used iterators under the hood)
-  for (auto &item : vec) {
-    item = value; // direct access to value
-  }
-  { // this is how it looks "under the hood"
-    auto begin = vec.begin();
-    auto end = vec.end();
-    for (; begin != end; ++begin) {
-      double &item = *begin;
-      item = value;
+  { // range based for-loop (requires and used iterators under the hood)
+    for (auto &item : vec) {
+      item = value; // direct access to value
+    }
+    { // this is how it looks "under the hood"
+      auto begin = vec.begin();
+      auto end = vec.end();
+      for (; begin != end; ++begin) {
+        double &item = *begin;
+        item = value;
+      }
     }
   }
 
   { // obtaining iterators using <iterator>
-    [[maybe_unused]] auto iter_begin = std::begin(vec);
+    [[maybe_unused]] auto iter_begin = std::begin(vec); // [[maybe_unused]] avoids compiler warning 
     [[maybe_unused]] auto iter_end = std::end(vec);
   }
 

@@ -83,7 +83,7 @@ There are three mechanism which lead to the determination of function template a
 ```
 
 > Which additional requirement for `Widget` (for successful instantiation) is introduced in the last snippet above?
-> - existence of a `m` member which is move-assignable and move-construtable
+> - existence of a `m` member which is move-assignable and move-constructable
 
 > See [swap.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/010/swap.cpp)
 
@@ -184,7 +184,7 @@ To summarize for a pass-by-reference function parameter:
 
 > Do these rules make sense?
 > - const-ness is preserved: this is what is expected when passing a const or const reference
-> - const-ness is also preseved in the template parameter type: this allows to specialize the implementation if a function parameter is const
+> - const-ness is also preserved in the template parameter type: this allows to specialize the implementation if a function parameter is const
 > - the function parameter type is always a lvalue reference: this is what we asked for
 > - See [deduction_lref.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/010/deduction_lref.cpp) for the full sources of the example
 
@@ -215,7 +215,7 @@ To summarize for a pass-by-reference-to-const function parameter:
 - the template parameter is never of reference type
 
 > Do these rules make sense?
-> - "original" const-ness is not preserved: this is ok, everything is passed as const anyway
+> - "original" const-ness is not preserved: this is OK, everything is passed as const anyway
 > - "original" reference type is lost: this is what we asked for: to always bind to an lvalue reference to const
 > - pointer: const is "forced" for the pointer type itself,e.g., `Widget *const`: this is expected; see below snippet for a syntax which reveals this:
 >```pmans
@@ -265,7 +265,7 @@ To summarize when using a forwarding reference as function parameter:
 
 > Do these rules make sense?
 > - the rules aim to achieve a specific goal: to preserve the value category and const-ness of the originally passed expression (to be able to forward it later): this is achieved
-> - the template parameter is non-reference for rvalues: this is ok (instead of beeing of rvalue reference) as it has no effect on reference collapsing (which applied during forwarding)
+> - the template parameter is non-reference for rvalues: this is OK (instead of being of rvalue reference) as it has no effect on reference collapsing (which applied during forwarding)
 > - See [deduction_fref.cpp](https://raw.githubusercontent.com/cppitems/cppitems/master/items/010/deduction_fref.cpp) for the full sources of the example
 
 Note:
@@ -280,7 +280,7 @@ Looking closer, *instantiation* is is separated in two stages:
 
 > Can a argument substitution fail? Are there different types of failure? 
 > - yes can fail: example: type does not support requirements
-> - yes, depends "where" an error occurres
+> - yes, depends "where" an error occurs
 
 Let's consider two examples showcasing the effect of errors occurring from the evaluation of
 - expressions with "direct influence" on the function type and the template parameters, and
