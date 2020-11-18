@@ -68,6 +68,13 @@ call took: 1.004630e-02s, accumulated: 2.033686e+00
 ## Testing
 As already noted above, `test_timer.cpp` contains several use cases of the wrapping-functionality you implement in `timer.h`. We will use `test_timer.cpp` to test your submission.
 
+Note: You should not change any code in `test_timer.cpp`; we will use an unmodified version to test your submission.
+
+**Hint**: When you start working on this exercise, the project will no compile without error. You can use the compiler argument "-fmax-errors=1" to stop compilation after the first error to prevent "meter-long" error messages w.r.t. failed template instatiations:
+```pmans
+set(CMAKE_CXX_FLAGS "-std=c++17 -Werror -Wall /*f*/ -fmax-errors=1 /*x*/" CACHE STRING "")
+```
+
 ## Submission
 Finally, you should submit EX2 (all three parts) using a single repository `ex2`.
 Therefore you repo should look like this after EX2.3:
