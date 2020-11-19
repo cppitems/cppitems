@@ -3,7 +3,7 @@
 template <typename T,
           template <typename, typename> class CONTAINER = std::vector>
 struct Widget {
-  CONTAINER<T, std::allocator<T>> ctnr;
+  std::vector<T, ...> ctnr;
 };
 
 // specialization for T=double

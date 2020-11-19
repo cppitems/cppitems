@@ -1,5 +1,5 @@
-9 // item status
-# Class templates 
+1 // item status
+# Class templates (raw)
 In C++ not only functions can be templated but also classes.
 Let's look at a simple structure `Pair` which holds two members of the same type:
 ```pmans
@@ -32,7 +32,7 @@ The usage of this class template is slightly different from the non-templated ve
 ```pmans
 ... 
   { // usage with `int`
-  Pair/*b*/ <int> /*x*/ p1{1, 2};
+  Pair/*b*/ <int> /*x*/ p1{1, 2}; //potentially could work
   Pair/*b*/ <int> /*x*/ p2{2, 1};
   auto sum = p1 + p2;
   }  
@@ -45,7 +45,10 @@ The usage of this class template is slightly different from the non-templated ve
 ```
 
 > Why do the template parameters have to be explicitly provided above?
+> - deduction rules dont allow dedection from aggretae init
+
 > Can this be avoided?
+> - yes, by providing extra "hints"
 
 Let's extend the `Pair` by adding an custom constructor:
 ```pmans
@@ -82,18 +85,25 @@ And again (as for function templates) there are three mechanism which lead to th
 ```
 
 > Why is `<>` required to use the default above?
+> - without the `<>` ctor arguments would be used
 
 > What if a class has no custom constructors, can I still enable automatic deduction?
+> - yes, if "deduction guide" is provided additionally
 
 Let's look at some more situations of using the `Pair` class template where it might not be obvious which template argument is deduced:
 ```pmans
-Pair p(/*b*/ "1" /*x*/, /*b*/ "2" /*x*/); // instantiates /*f*/ Pair<???> /*x*/  
-Pair p(/*b*/ "12" /*x*/, /*b*/ "34" /*x*/); // instantiates /*f*/ Pair<???> /*x*/ 
-Pair p(/*b*/ 1 /*x*/, /*b*/ "34" /*x*/); // instantiates /*f*/ Pair<???> /*x*/
-Pair p(/*b*/ 1.0 /*x*/, /*b*/ 1 /*x*/); // instantiates /*f*/ Pair<???> /*x*/
-Pair p(/*b*/ 1 /*x*/, /*b*/ 1.0 /*x*/); // instantiates /*f*/ Pair<???> /*x*/
+Pair p(/*b*/ "1" /*x*/, /*b*/ "2" /*x*/); // (1) instantiates /*f*/ Pair<char const[2]> /*x*/  c-type string
+Pair p(/*b*/ "12" /*x*/, /*b*/ "34" /*x*/); // (2) instantiates /*f*/ Pair<char const[3]> /*x*/ 
+Pair p(/*b*/ 1 /*x*/, /*b*/ "34" /*x*/); // (3) instantiates /*f*/ Pair<???> /*x*/ does not work 
+Pair p(/*b*/ 1.0 /*x*/, /*b*/ 1 /*x*/); // (4) instantiates /*f*/ Pair<???> /*x*/ does not work
+Pair p(/*b*/ 1 /*x*/, /*b*/ 1.0 /*x*/); // (5) instantiates /*f*/ Pair<???> /*x*/ same
 ``` 
 > Can the templates above be instantiated? What are the deduced types?
+
+> "strings":
+> - `char [N]` from literal `"achararray"`
+> - `char` from char literal `'c'`
+> - `std::string` can be constructed from `char[N]` and `char`
 
 ```bash
 # examples are in
@@ -123,10 +133,15 @@ void func(/*b3*/ T&& arg) {}; // T&& is a forwarding reference
 // class template
 template<typename /*f1*/ T>
 struct Widget{
+   T member; 
    Widget(/*f3*/ T&& arg) {}; // T&& is a rvalue reference  
 void func(/*f3*/ T&& arg) {}; // T&& is a rvalue reference  
 }
 ```
+> Why does this difference make sense?
+> - `T` would not be very appropriate to work with "inside the class"
+
+
 So let us again recap the remaining rules for a class template with a single template parameter and a constructor with a single dependent argument.
 
 ### Pass-by-value
@@ -145,11 +160,11 @@ Let's practice a bit:
 ```pmans
     double lval =1.0;
     double &lref = lval;
-    Widget w1(lval);                // Widget<???>
-    Widget w2(lref);                // Widget<???>
-    Widget w3(std::as_const(lref)); // Widget<???>
-    Widget w3(std::move(lref));     // Widget<???>
-    Widget w3(1.0);                 // Widget<???>
+    Widget w1(lval);                // (1) Widget<double>
+    Widget w2(lref);                // Widget<double>
+    Widget w3(std::as_const(lref)); // Widget<double>
+    Widget w3(std::move(lref));     // Widget<double>
+    Widget w3(1.0);                 // Widget<double>
 ```
 
 ```bash
@@ -173,11 +188,11 @@ Let's again practice a bit:
 ```pmans
     double lval =1.0;
     double &lref = lval;
-    Widget w1(lval);                    // Widget<???>::Widget(???& arg)
-    Widget w2(lref);                    // Widget<???>::Widget(???& arg)
-    Widget w3(std::as_const(lref));     // Widget<???>::Widget(???& arg)
-    Widget w4(std::move(lref));         // Widget<???>::Widget(???& arg)
-    Widget w5(1.0);                     // Widget<???>::Widget(???& arg)
+    Widget w1(lval);                    // Widget<double>::Widget(double& arg)
+    Widget w2(lref);                    // Widget<double>::Widget(double& arg)
+    Widget w3(std::as_const(lref));     // Widget<const double>::Widget(const double& arg)
+    Widget w4(std::move(lref));         // (4) Widget<???>::Widget(???& arg) error, requires lvalue
+    Widget w5(1.0);                     // Widget<???>::Widget(???& arg) same
 ```
 ```bash
 # examples in
@@ -241,8 +256,8 @@ template <typename /*f5*/ FIRST, typename /*f6*/ SECOND> struct Pair {
 };
 
 // usage 
-Pair p1(1, 2.0); // (1) Pair<???,???> 
-Pair p2(2.0, 1); // (2) Pair<???,???> 
+Pair p1(1, 2.0); // (1) Pair<int, double> 
+Pair p2(2.0, 1); // (2) Pair<double, int> 
 auto sum = p1 + p2; // (3) still works ?
 ```
 > Did anything break by introducing the second template parameter?
@@ -296,7 +311,8 @@ template <typename /*b1*/ T>
 struct Widget {
   /*b1*/ T m;
   template <typename /*b5*/ OTHER>
-  Widget(const /*b5*/ OTHER &o) {} // construct Widget and set T = OTHER::value_type
+  Widget(const /*b5*/ OTHER &o) {} 
+  // construct Widget and set T = OTHER::value_type
 };
 ...
 ```
@@ -315,7 +331,7 @@ struct Other {
 // usage
 int main() {
   Widget w(Other{}); // will use deduction guide:
-                     // Widget<???>::Widget<???>(const OTHER& o);
+                     // Widget<int>::Widget<Other>(const OTHER& o);
 }
 ```
 
@@ -354,6 +370,7 @@ We could achieve this by providing a *full specialization* of `Pair` for `char`:
         std::string(1, first) + std::string(1, other.first),
         std::string(1, second) + std::string(1, other.second)};
   }
+  
 };
 ```
 Specializations are not required to "look the same" as their associated *primary template*, it is just that they are only "found" through the primary template during name lookup. 
@@ -367,7 +384,7 @@ clang++ -std=c++17 pair_special.cpp
 Let's look an an example which uses class template specialization to implement a compile time check if two type are identical.
 We start by preparing two small helper class `True` and `False` which each hold a `static const` member:
 ```pmans
-struct Flase {
+struct False {
   static const bool value = false;
 };
 struct True {
@@ -377,7 +394,7 @@ struct True {
 Next we implement the primary template `is_same` which inherits from `False`:
 ```pmans
 template <class A, class B>
-struct is_same : Flase {}; // primary template, two parameters
+struct is_same : False {}; // primary template, two parameters
 ```
 Up to now, `is_same` is useless, if we would use it as intended:
 ```pmans
@@ -394,6 +411,7 @@ This partial specialization is selected whenever it "matches better" than the pr
 int main(){
     std::cout << is_same<double,double>::value << std::endl; // true
     std::cout << is_same<double,float>::value << std::endl; // false
+    static_assert(is_same<double,float>::value);
 }
 ```
 ```bash
@@ -402,6 +420,8 @@ clang++ -std=c++17 is_same.cpp
 ```
 
 > Is there such a thing as `is_same` also in the standard library?
+> - yes, stdlib type traits is full of them
+> - `std::is_same`
 
 ## Types of template parameters
 Up to now we only considered *type template parameters*: parameters which represent a type.
@@ -440,6 +460,7 @@ clang++ -std=c++17 nttp.cpp
 ```
 
 > How does the non-type template parameter compare to a simple bool member in above example?
+> - performance
 
 ### Template template parameters
 An example for a template template parameter is in the following snippet:
