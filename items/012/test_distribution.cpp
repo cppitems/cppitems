@@ -10,7 +10,7 @@
 #include <random>
 #include <vector>
 
-// Requirements of Type Distribution:
+// Requirements for Type Distribution:
 // - Default constructor for explicit instantiation
 // - Template constructor taking any STL data structure as sole parameter
 // - Class is a template of the same type of the STL data structures value_type
@@ -25,11 +25,13 @@ Distribution<double> populate_with_distribution(C &container) {
 
   // setup varying normal distribution
   std::mt19937 gen(1); // PRNG
-  std::uniform_real_distribution uniDist(0.0, 1.0);
+  std::uniform_real_distribution<> uniDist(0.0, 1.0);
+
+  // Explicitly initialise Distribution
   Distribution<double> initial(uniDist(gen) * 100.0, uniDist(gen) * 10.0);
-  std::normal_distribution normalDist{initial.mean, initial.stddev};
 
   // populate container by drawing from normal distribution
+  std::normal_distribution<> normalDist{initial.mean, initial.stddev};
   for (unsigned i = 0; i < size; ++i) {
     T value(normalDist(gen));
     container.insert(container.end(), std::move(value));

@@ -1,11 +1,11 @@
-9 // item status
+1 // item status
 # (Preliminary) Exercise EX2.2
 
 This exercise is part **two** of three parts of EX2. See also [Item 000](https://cppitems.github.io/#/item/000) for an overview and deadlines. The submission deadline for EX2 (all three parts) is **Mo 30.11.2020, 4pm**. The sources related to EX2.2 are available at [Item 012](https://github.com/cppitems/cppitems/tree/master/items/012).
 
 ## Task 1
 
-The first task in this exercise is to implement the calculation of the *arithmetic mean* and *standard deviation* of the collection of elements in a container. The implementation is required inside the `Distribution` class (`Distribution.hpp`) which look like this:
+The first task in this exercise is to implement the calculation of the *arithmetic mean* and *standard deviation* of the collection of elements in a container. The implementation is required inside the `Distribution` class (`Distribution.hpp`) which looks like this:
 ```pmans
 template <typename T> struct Distribution {
   using value_type = T;
@@ -29,9 +29,7 @@ The implementation at (1) is at least required to work for these for types `valu
 - `long`
 - `SpaceVector<double>` (from `SpaceVector.hpp`)
 
-**Hint**: `SpaceVector` already supports the required operators to calculate the mean and standard deviation including also `sqrt`. Nevertheless, you are allowed to extend the implementation of `SpaceVector` if required for your implementation.
-
-Prepare yourself for a discussion on your submission.
+**Hint**: `SpaceVector` already supports the required operators to calculate the mean and standard deviation including also `sqrt`.
 
 ## Task 2
 The second task in this exercise is to extend the implementation of the `Distribution` class to support a construction from different container types. 
@@ -48,21 +46,17 @@ An example of how this syntax looks like in `test_distribution.cpp` is this:
 ```
 
 Note: After you completed your implementation, the project should compile without errors.
-Note: You are also allowed to adopt the existing part of the implementation of `Distribution `.
 
-**Hint**: If you use a *templated constructor* in your implementation of `Distribution` it might become necessary to provide an user-provided **deduction guide** to relate the template arguments of the class and the constructor.
+Note: You are encouraged to adopt the existing part of the implementation of `Distribution `.
 
-Prepare yourself for a discussion on your submission.
+**Hint**: You should use templates to avoid code duplication and use the common interfaces of these different containers in your implementation. In this way you could solve **Task 1** and **Task 2** with just one implementation.
 
 ## Testing
 The file `test_distribution.cpp` contains several use cases of of the `Distribution` class covering the requirements for supported container types and `value_types` mentioned above. We will use this file to test your submission.
 
 Note: You should not change any code in `test_distribution.cpp`; we will use an unmodified version to test your submission.
 
-**Hint**: When you start working on this exercise, the project will no compile without error. You can use the compiler argument "-fmax-errors=1" to stop compilation after the first error to prevent "meter-long" error messages w.r.t. failed template instantiations:
-```pmans
-set(CMAKE_CXX_FLAGS "-std=c++17 -Werror -Wall /*f*/ -fmax-errors=1 /*x*/" CACHE STRING "")
-```
+**Hint**: When you start working on this exercise, the project will not compile without errors. You can use the compiler argument "-fmax-errors=1" (g++) to stop compilation after the first error to prevent "meter-long" error messages w.r.t. failed template instantiations. The provided CMakeLists.txt contains these limits for the GNU (g++) and the Clang compilers. If you use a different compiler, you are encouraged to set the error limit yourself.
 
 ## Submission
 Finally, you should submit EX2 (all three parts) using a single repository `ex2`.

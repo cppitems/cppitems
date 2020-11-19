@@ -5,8 +5,8 @@ This exercise is part **three** of three parts of EX2. See also [Item 000](https
 
 ## Task description
 
-In this exercise it is your task to implement a wrapper-functionality to measure the run time of "callables".
-The syntax of how to measure the run time is already fixed and provided in `test_timer.cpp` [link](https://raw.githubusercontent.com/cppitems/cppitems/master/items/013/test_timer.cpp). 
+In this exercise, it is your task to implement a wrapper-functionality to measure the run time of "callables".
+The syntax of how to measure the run time is already fixed and provided in `test_timer.cpp` ([here](https://raw.githubusercontent.com/cppitems/cppitems/master/items/013/test_timer.cpp)).
 More specifically, you have to implement the wrapping-functionality solely in `timer.h` and are not allowed to change the interface to the wrapper used in `test_timer.cpp` .
  Further, your implementation has to support all use cases present in `test_timer.cpp` . 
 This means: After you completed your implementation in `timer.h` the project should compile without any adoptions in `test_timer.cpp`.
@@ -24,7 +24,7 @@ int main(){
   track_time(/*f*/ func4<T> /*x*/, /*b*/ vec1 /*x*/, /*b*/ vec2 /*x*/, /*b*/ vec3 /*x*/); // call using wrapper which tracks run time
 }
 ```
-Similarly to measure the run time of a lambda (function object) it looks like this:
+Similarly, measuring the run time of a lambda (function object) looks like this:
 ```pmans
 /* file: test_timer.cpp */
 #include "timer.h"
