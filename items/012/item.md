@@ -1,5 +1,5 @@
 1 // item status
-# (Preliminary) Exercise EX2.2
+# Exercise EX2.2
 
 This exercise is part **two** of three parts of EX2. See also [Item 000](https://cppitems.github.io/#/item/000) for an overview and deadlines. The submission deadline for EX2 (all three parts) is **Mo 30.11.2020, 4pm**. The sources related to EX2.2 are available at [Item 012](https://github.com/cppitems/cppitems/tree/master/items/012).
 
