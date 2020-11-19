@@ -31,6 +31,8 @@ The implementation at (1) is at least required to work for these for types `valu
 
 **Hint**: `SpaceVector` already supports the required operators to calculate the mean and standard deviation including also `sqrt`. Nevertheless, you are allowed to extend the implementation of `SpaceVector` if required for your implementation.
 
+Prepare yourself for a discussion on your submission.
+
 ## Task 2
 The second task in this exercise is to extend the implementation of the `Distribution` class to support a construction from different container types. 
 At least the following container types should be supported: `std::vector`, `std::list`, `std::deque` .
@@ -45,12 +47,12 @@ An example of how this syntax looks like in `test_distribution.cpp` is this:
   /*b*/ Distribution /*x*/ final_distr(/*f4*/ ctnr); 
 ```
 
-
-
 Note: After you completed your implementation, the project should compile without errors.
 Note: You are also allowed to adopt the existing part of the implementation of `Distribution `.
 
 **Hint**: If you use a *templated constructor* in your implementation of `Distribution` it might become necessary to provide an user-provided **deduction guide** to relate the template arguments of the class and the constructor.
+
+Prepare yourself for a discussion on your submission.
 
 ## Testing
 The file `test_distribution.cpp` contains several use cases of of the `Distribution` class covering the requirements for supported container types and `value_types` mentioned above. We will use this file to test your submission.

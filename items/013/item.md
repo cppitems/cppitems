@@ -46,6 +46,8 @@ is the method of choice in this scenario (to avoid code duplication and support 
 
 **Note**: For this exercise, you can assume that the `track_time` wrapper-functionality only needs to support functions with return type `void`.
 
+Prepare yourself for a discussion on your submission.
+
 ### Output of run times
 Your implementation should output the run time of each "wrapped call" to the console.
 Additionally, the individual run times of the calls are accumulated; this accumulated run time should also be reported to the console after each "wrapped call". 
@@ -84,7 +86,8 @@ algorithms.h
 test_timer.cpp
 timer.h
 test_distribution.cpp
-distribution.h
+Distribution.hpp
+SpaceVector.hpp
 CMakeLists.txt
 ```
 Further you should add all relevant targets in the `CMakeLists.txt` which should look similar to this after EX2.3:
