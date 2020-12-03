@@ -1,4 +1,4 @@
-9 // item status
+1 // item status
 # Smart Pointers
 
 Raw pointers are a versatile tool in C. They are used for
