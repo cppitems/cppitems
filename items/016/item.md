@@ -54,7 +54,7 @@ struct Widget{
   if (ptr /*b2*/ == &w) {throw;};
   Widget *ptr /*b2*/ = /*f3*/ new Widget{};
 ```
-The *smart pointers* from the standard library discussed in the following aim to follow this functionality as long as it does not contradict to the underlying idea of the respective *smart pointer*.
+The *smart pointers* from the standard library discussed in the following aim to follow this functionality as long as it does not stand against the underlying idea of the respective *smart pointer*.
 
 ## std::unique_ptr
 In cases where an exclusive ownership of a resource is desired, `std::unique_ptr` provides (and demands) expressiveness and delivers some convenience.
@@ -63,12 +63,12 @@ Let's consider the function `get_widget` above, which returns a raw pointer to a
 struct Widget {
     int m;
 }
-...
+... 
 Widget */*b3*/ ptr = get_widget();
-// is /*f3*/ ptr a resource which needs to be be release?
+// is /*f3*/ ptr a resource which needs to be be released?
 // who will release the resource?
 ```
-Or let's consider s slight variation of the function signature:
+Or let's consider a slight variation of the function signature:
 ```pmans
 Widget w;
 Widget */*b3*/ ptr = get_widget(&w);
@@ -97,9 +97,9 @@ Additionally, manual termination is not required: the owned resource is released
 
 > What about pointer arithmetic and other operators?
 
-### Overhead: how does a std::unique_ptr look like?
+### Overhead: what does a std::unique_ptr look like?
 If we decide to use a `std::unique_ptr` instead of a raw pointer, what can we expect in terms of performance? 
-To argue about this, let's look how (a small part of) of a simplified implementation looks like:
+To argue about this, let's look what (a small part of) a simplified implementation looks like:
 ```pmans
 template <typename T> class /*f*/ unique_ptr /*x*/ {
   T */*b*/ ptr /*x*/ = nullptr;
@@ -121,7 +121,7 @@ Construction has a minimal overhead and access and destruction have no overhead 
 
 ### Custom deleter example
 
-If a `unique_ptr` manages a resource which is not a dynamically allocated object (for which the default release mechanism is fine, e.g., `delete` or `delete[]`) a custom deleter can be passed at construction. Let's look at a small example which uses a file handle:
+If a `unique_ptr` manages a resource which is not a dynamically allocated object (for which the default release mechanism is fine, i.e., `delete` or `delete[]`) a custom deleter can be passed at construction. Let's look at a small example which uses a file handle:
 ```pmans
 void parse(FILE *handle){}; // parsing the file
 
@@ -156,7 +156,7 @@ This demonstrates that a `unique_ptr` can also be used to manage resources not d
 
 ## std::shared_ptr
 If a resource is intended to be shared (i.e., multiple handles exist simultaneously) and are shared between participating entities it is not straightforward to decide when to perform the final release of the resource: is is desired that is only happens after all participating entities are no more able to access the resource.
-The `std::shared_ptr` solves this problem using *reference counting*: the number of valid handles (references) to a resource, are tracked using a single counter variable per resource: 
+The `std::shared_ptr` solves this problem using *reference counting*: the number of valid handles (references) to a resource are tracked using a single counter variable per resource: 
 - on construction of the first (original) handle the counter is set to one
 - whenever an additional handle is constructed the counter is incremented
 - whenever a handle is invalidated the counter is decremented
@@ -178,8 +178,8 @@ std::shared_ptr<Widget> sp4 = std::move(up1); // obtain sp (moving from lvalue u
 
 > What about pointer arithmetic and other operators?
 
-### Overhead: how does a `std::shared_ptr` look like
-If we decide to use a `std::shared_ptr` instead of a `std::unique_ptr` or raw pointer, what can we expect in terms of performance? To argue about this, let's look again at how (a small part of) of a simplified implementation looks like:
+### Overhead: what does a `std::shared_ptr` look like
+If we decide to use a `std::shared_ptr` instead of a `std::unique_ptr` or raw pointer, what can we expect in terms of performance? To argue about this, let's look again at what (a small part of) a simplified implementation looks like:
 ```pmans
 template <class T> class /*f*/ shared_ptr /*x*/ {
   struct /*f*/ ControlBlock /*x*/ {

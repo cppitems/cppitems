@@ -19,21 +19,16 @@ template <class T> class shared_ptr {
 public:
   shared_ptr(T *ptr) : cb(new ControlBlock()), ptr(ptr) {}
   shared_ptr(const shared_ptr &other) : cb(other.cb), ptr(other.ptr) {
-    increment();
+    //
   }
   shared_ptr(shared_ptr &&other) : cb(other.cb), ptr(other.ptr) {
-    other.cb = nullptr;
-    other.ptr = nullptr;
+    //
   }
-  ~shared_ptr() { decrement(); }
+  ~shared_ptr() { 
+    // 
+  }
   shared_ptr &operator=(const shared_ptr &other) {
-    if (this != &other) {
-      decrement();
-      cb = other.cb;
-      ptr = other.ptr;
-      increment();
-    }
-    return *this;
+    //
   }
 
   T *operator->() const { return ptr; }
