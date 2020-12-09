@@ -26,7 +26,7 @@ int main() {
   auto index = std::distance(testList.begin(), it);
 
   // length of whole list
-  auto length = std::distance(testList.begin(), testList.end());
+  list<int>::size_type length = std::distance(testList.begin(), testList.end());
 
   if(index == 6 && length == testList.size()) {
     std::cout << "[ SUCCESS ]" << std::endl;
