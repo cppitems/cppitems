@@ -24,7 +24,7 @@ int main() {
   // check whether member can be retrieved with arrow operator
   unsigned counter = 0;
   for(auto it = testList.begin(); it != testList.end(); ++it) {
-    if(it->member != counter) {
+    if(it->member != static_cast<int>(counter)) {
       std::cout << "[ FAILED ]: expected " << counter << ", but got " << it->member << std::endl;
       return 1;
     }
