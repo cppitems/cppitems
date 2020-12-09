@@ -1,5 +1,5 @@
 9 // item status
-# Exercise EX3.2
+# (Preliminary) Exercise EX3.2
 
 This exercise is part **two** of three parts of EX3. See also [Item 000](https://cppitems.github.io/#/item/000) for an overview and deadlines. The submission deadline for EX3 (all three parts) is **Mo	11.01.2021, 4pm**. The sources related to EX3.2 are available at [Item 018](https://github.com/cppitems/cppitems/tree/master/items/018).
 
