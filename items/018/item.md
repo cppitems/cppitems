@@ -37,7 +37,7 @@ It is your task to implement the missing functionality to pass all tests:
 - comparison operators `==` and `!=` between a `unique_ptr` and a `nullptr` (TestD)
 
 ### Custom deleter
-Finally, you are required to add funtionality to support a *custom deleter* (TestE and TestF) which takes a pointer to the resource as argument.
+Finally, you are required to add functionality to support a *custom deleter* (TestE and TestF) which takes a pointer to the resource as argument.
 One (recommended) way to achieved this is using a `std::function` with a fixed signature `void(T *)` to capture a custom deleter as a member:
 ```pmans
 template <typename T> class /*f*/ unique_ptr /*x*/ {
@@ -48,9 +48,9 @@ template <typename T> class /*f*/ unique_ptr /*x*/ {
 ```
 The deleter can then be used (`del(ptr);`) instead of `delete ptr;` . 
 
-**Hint**: It is a valid approch to first neglect the requirements for a custom deleter (TestE and TestF) and (at first) only implementing the requirements for TestA-TestD; once these tests work you can extend the class to also support a custom deleter.
+**Hint**: It is a valid approach to first neglect the requirements for a custom deleter (TestE and TestF) and (at first) only implementing the requirements for TestA-TestD; once these tests work you can extend the class to also support a custom deleter.
 
-**Note**: If you desire more ganular tests you can also comment parts of a test case during development.
+**Note**: If you desire more granular tests you can also comment parts of a test case during development.
 
 ## Requirements and testing
 As for EX3.1, we provide tests to specify the desired functionality and to guide the implementation.
