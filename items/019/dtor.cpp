@@ -9,9 +9,9 @@ struct Widget : Base {
 
 int main() {
   Widget w{};
-  // destruction sequence:
+  // destruction sequence for 'w':
   // w.~Widget()
-  // w.~w
+  // w.~w()
   // w.Base::~Base()
-  // w.Base::b
+  // w.Base::b()
 }

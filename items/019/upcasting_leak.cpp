@@ -1,6 +1,6 @@
 struct Base {
   int b;
-  ~Base() = default;
+  virtual ~Base() = default;
 };
 struct Widget : Base {
   int w;
@@ -8,7 +8,7 @@ struct Widget : Base {
 struct WidgetOwns : Base {
   int *data;
   WidgetOwns() : data(new int) {}
-  ~WidgetOwns() { delete data; };
+  ~WidgetOwns() override { delete data; };
 };
 
 Base get_base() { return Widget{}; }
@@ -17,5 +17,6 @@ Base *get_base_ptr() { return new WidgetOwns{}; }
 int main() {
 
   auto *ptr = get_base_ptr();
-  delete ptr;
+  delete ptr; // first action is not the override -> ~WidgetOwns() 
+  // -> ~Base() is called though destruction mechanism
 }
