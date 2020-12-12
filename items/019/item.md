@@ -1,7 +1,7 @@
 1 // item status
 # Inheritance
 
-In C++, classes can form a hierarchy by *inheritance*. Let's look at a very simple example of a hierarchial coupling of three types:
+In C++, classes can form a hierarchy by *inheritance*. Let's look at a very simple example of a hierarchical coupling of three types:
 ```pmans
 /* file: layout.cpp */
 struct /*b*/ Base /*x*/ {
@@ -44,7 +44,7 @@ This relationship is not necessarily true for the *downwards* direction:
 - `Base` *might-be-a* `Widget` (and a `Other`) 
 - `Widget` *might-be-a* `Other`
 
-This relationship is what makes a hierachy attractive: a derived type can be use as if it were a type more *up* in the hierarchy.
+This relationship is what makes a hierarchy attractive: a derived type can be use as if it were a type more *up* in the hierarchy.
 
 ## Construction
 In a hierarchy, sufficient constructors are required to be available for all participating classes.
@@ -131,7 +131,7 @@ struct WidgetPrv : /*b*/ private /*x*/ Base {
 };
 ```
 - private access from within derived class 
-- no addtions to public interface of derived class
+- no additions to public interface of derived class
 
 **protected**
 ```pmans
@@ -218,12 +218,12 @@ struct /*b*/ WidgetOwns /*x*/ : /*f*/ Base /*x*/ {
   ~WidgetOwns() { /*b*/ delete /*x*/ data; };
 };
 ```
-`WidgetOwns` is a resource owning class, which emphasiszes the need for a proper deallocation at the end of its lifetime.
+`WidgetOwns` is a resource owning class, which emphasizes the need for a proper deallocation at the end of its lifetime.
 
 > Does the deallocation work as expected when deallocating using a `Base` pointer?
 > - No, the hierarchy in use is not *polymorphic* : the deconstruction only invokes `~Base()` which is not aware of the need to call `~Widget()`. 
 
-If *polymorphic* behaivour (via *virtual functions*) is expected from a hierarchy (which has consequences on the memory footprint and performance when invoking member function) this has to be explicitly demanded by the programmer.
+If *polymorphic* behavior (via *virtual functions*) is expected from a hierarchy (which has consequences on the memory footprint and performance when invoking member function) this has to be explicitly demanded by the programmer.
 
 ## Virtual functions
 Above we used a dynamically allocated object because it should outlive the scope of the returning function.
@@ -283,12 +283,12 @@ struct /*f*/ Widget2 /*x*/ : public /*f*/ Base /*x*/ {
 This is an example of using a polymorphic hierarchy to treat a group of types in the same way, i.e., calling the `calculate()` member.
 
 > Why do we have to use dynamically allocated objects above?
-> - differnt types with differnt object footprints cannot be stored in a container
+> - different types with different object footprints cannot be stored in a container
 > - native pointers (and also smart pointers) have a fixed size
 > - pointers to *not* dynamically allocated objects cannot be used: objects need to outlive the scope of creation
 
 > What are the disadvantages?
-> - one addtional allocation per object (performance!)
+> - one additional allocation per object (performance!)
 > - for containers with contiguously allocated memory: objects are not stored contiguously, but the pointers (performance!)
 > - semantics change to "reference semantics", e.g., a copy now copies the  (smart) pointer, not the pointed-to object. The default in C++ is "value semantics", e.g., it might be harder to reason about local code.
 
@@ -307,10 +307,10 @@ struct /*f*/ Widget /*x*/ : /*f*/ Base /*x*/ {
 ```
 The call of a virtual function then uses the `vptr` to access the virtual function table and the calls the desired function by using the function pointer stored at a fixed offset in the table.
 
-Note: Compared to the invokation of a non-virtual function this introduces a run time overhead. Also inlining is not possible for virtual function calls.
+Note: Compared to the invocation of a non-virtual function this introduces a run time overhead. Also inlining is not possible for virtual function calls.
 
 > Is the `override` keyword actually required? 
-> - no, it is "just" to help to avoid mistakes, i.e., if a derisred override does not match (due to a mistake in the signature) a virtual function
+> - no, it is "just" to help to avoid mistakes, i.e., if a desired override does not match (due to a mistake in the signature) a virtual function
 > - as the `override` keyword is optional, a virtual destructor does not have to be explicitly overridden: the implicit default destructor will override.
 
 ## Abstract classes
