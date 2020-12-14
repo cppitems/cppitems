@@ -1,10 +1,10 @@
-9 // item status
-# (Preliminary) Exercise EX3.2
+1 // item status
+# Exercise EX3.2
 
 This exercise is part **two** of three parts of EX3. See also [Item 000](https://cppitems.github.io/#/item/000) for an overview and deadlines. The submission deadline for EX3 (all three parts) is **Mo	11.01.2021, 4pm**. The sources related to EX3.2 are available at [Item 018](https://github.com/cppitems/cppitems/tree/master/items/018).
 
 ## Task description
-In this exercise it is your task to complete the implementation of a *smart pointer* class according to requirements specified using test cases. 
+In this exercise it is your task to complete the implementation of a *smart pointer* class according to requirements specified using provided test cases. 
 The class you should implement needs to provide functionality similar to a `std::unique_ptr`.
 An minimal starting point is provided in `unique_ptr.hpp`:
 ```pmans
@@ -24,12 +24,12 @@ public:
   T *operator->() { return get(); }
 };
 ```
-As you can see this `unique_ptr` is a simplified version of `std::unique_ptr` as it always uses `delete`. 
-It does not need to support arrays (i.e., `delete[]`). This also means implicit type deduction is possible (which is not available for `std::unique_ptr`).
+As you can see, this `unique_ptr` is a simplified version of `std::unique_ptr` as it always uses `delete` to dealloacte the managed resource. 
+It does not support arrays (i.e., `delete[]`). This also means implicit type deduction is possible (which is not available for `std::unique_ptr`).
 
-It is your task to implement the missing functionality to pass all tests:
+It is your task to implement the missing functionality to pass all provided tests:
 - move construction (TestA) and move assignment (TestB) 
-- disable copy construction and copy assignment (TestB) 
+- disable copy construction and disable copy assignment (TestB) 
 - assignment from `nullptr` (TestB)
 - member `release()` to stop management of the currently wrapped resource and return a pointer to the resource (TestC)
 - member `reset(...)` to deallocate the currently managed resource and start managing the resource passed as argument via a pointer (TestC)
@@ -46,9 +46,9 @@ template <typename T> class /*f*/ unique_ptr /*x*/ {
   ...
 }
 ```
-The deleter can then be used (`del(ptr);`) instead of `delete ptr;` . 
+The deleter can then be used with `del(ptr);` instead of `delete ptr;` . 
 
-**Hint**: It is a valid approach to first neglect the requirements for a custom deleter (TestE and TestF) and (at first) only implementing the requirements for TestA-TestD; once these tests work you can extend the class to also support a custom deleter.
+**Hint**: It is a valid approach to first neglect the requirements for a custom deleter (TestE and TestF) and (at first) only implementing the requirements for TestA-TestD; once these tests work you can extend your `unqiue_ptr` to also support a custom deleter.
 
 **Note**: If you desire more granular tests you can also comment parts of a test case during development.
 
@@ -63,7 +63,7 @@ or just one test using the name of the test:
 ```bash
 make TestA_construction
 ```
-Once all tests compile, you can run them all after each other with the provided shell script `runSmartPtrTests.sh`. 
+Once all tests compile (and complete successfully), you can run them all after each other with the provided shell script `runSmartPtrTests.sh`. 
 Your `unique_ptr` implementation should pass all tests successfully.
 
 **Note**: We will test your implementation with the AddressSanitizer turned on. You can do so by configuring you project using `cmake -D CMAKE_BUILD_TYPE=Debug ..` which adds the sanitizer flags in the supplied CMake configuration.
@@ -79,7 +79,7 @@ Therefore you repo should look like this after EX3.2:
 IteratorTests/*
 SmartPtrTests/*     (new from EX3.2)
 .gitignore
-CMakeLists.txt      (updated: integrate build option for EX3.2 test)
+CMakeLists.txt      (updated: integrate build option for EX3.2 tests)
 fibonacci_iterator.cpp
 list.hpp
 runTests.sh

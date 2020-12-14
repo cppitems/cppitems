@@ -24,6 +24,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Werror -Wall")
 SUBDIRLIST(TEST_DIRS ${CMAKE_CURRENT_LIST_DIR})
 
 foreach(subdir ${TEST_DIRS})
-  message(${subdir})
+  message("Parsing test folder:" ${subdir})
   add_subdirectory(${subdir})
 endforeach()

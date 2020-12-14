@@ -14,8 +14,8 @@ int main() {
     auto *ptr1 = up1.get();
     // move constructions
     auto up2 = unique_ptr(std::move(up1));
-    assert(up1.get() == nullptr);
-    assert(ptr1 == up2.get());
+    assert(up1.get() == nullptr); // error: "moved-from object not pointing to nullptr"
+    assert(ptr1 == up2.get()); // error "move-destination not pointing to moved-from resource"
   }
 
   // reaching here is success
