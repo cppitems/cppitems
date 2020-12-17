@@ -1,38 +1,63 @@
-9 // item status
+1 // item status
 # Parallelism and Concurrency
 For shared-memory scenarios, the *OpenMP* `pragma`-based interface for C++ allows a straightforward "high-level" parallelization of many prominent use cases for parallelization (.e.g, nested for loops) and also provides mechanisms to implement synchronization between parallel running threads (e.g., critical regions or atomic updates). 
 OpenMP implementations typically come along with a compiler and support a certain version of the OpenMP standard.
 A prominent alternative is `TBB` which supports similar use cases but is shipped as a third-party library (i.e., the integration is not `pragma`-based).
 
+
+**TBB**
+```pmans
+#include <tbb/parallel_for.h>
+...
+auto values = std::vector<double>(10000);
+tbb::parallel_for(tbb::blocked_range<int>(0, values.size()),
+                  [&](tbb::blocked_range<int> r) {
+                    for (auto &&i : r) {
+                      values[i] = 5;
+                    }
+                  });
+```
+**OpenMP**
+```pmans
+#include <omp.h>
+...
+auto values = std::vector<double>(10000);
+#pragma omp for
+  for (size_t n = 0; n < values.size(); ++n) {
+    values[n] = 5;
+  }
+```
+
+
 Currently, the C++ standard library provides support for threads and some synchronization primitives. Additionally, `std::atomic` provides a wrapper for atomic types with specialization for integers and pointers.
 
-We will have a look at some important synchronization primitives to illustrate "how much batteries are included" in the standard library w.r.t. parallelism and concurrency.
+We will have a look at some important synchronization primitives to illustrate "how many batteries are included" in the standard library w.r.t. parallelism and concurrency.
 
 ## std::thread
 Constructing a `std::thread` in C++ can look likes this, when using a callable which requires some arguments:
 ```pmans
-      auto callable = [](int a, int b) {
+      auto /*f*/ callable /*x*/ = [](int /*f*/ a /*x*/, int /*f*/ b /*x*/) {
         std::cout << a + b << std::endl;
         return a + b;
       };
       int arg1 = 1;
       int arg2 = 1;
-      std::thread thread(callable, arg1, arg2);
+      /*b*/ std::thread /*x*/ thread(/*f*/ callable /*x*/, /*f*/ arg1 /*x*/, /*f*/ arg2 /*x*/);
       thread.join();
 ``` 
 Here, a function object obtained from a lambda expression is used.
 After construction `thread` immediately invokes the callable using the provided arguments in a new thread of execution:
-- no local variables are available
+- local variables of "origin-scope" are not accessible
 - global variables are accessible
 
 > Can variables be made available in the new thread when capturing them as references or by-value?
 
 The construction of a thread does not support passing references as constructor arguments, this is why the following is not immediately possible:
 ```pmans
-      auto callable = [](int &a, int &b) { ... };
+      auto /*f*/ callable /*x*/ = []int /*f*/ &a /*x*/, int /*f*/ &b /*x*/) { ... };
       int arg1 = 2;
       int arg2 = 2;
-      std::thread thread(callable, arg1, arg2); // does not compile
+      /*b*/ std::thread /*x*/ thread(/*f*/ callable /*x*/, /*f*/ arg1 /*x*/, /*f*/ arg2 /*x*/); // does not compile
       ...
 ```
 > How to overcome this problem if we want to pass a reference (e.g., a large object to be manipulated by the thread)?
@@ -40,11 +65,11 @@ The construction of a thread does not support passing references as constructor 
 As we have seen above, a std::thread requires an explicit `.join()` before the application ends. 
 A lightweight wrapper can be used if desired to automatically join the thread when the variable is destructed:
 ```pmans
-struct jthread {
-  std::thread t;
+struct /*f*/ jthread /*x*/ {
+   /*b*/ std::thread /*x*/ t;
   template <class... Args>
-  explicit jthread(Args &&... args) : t(std::forward<Args>(args)...) {}
-  ~jthread() { t.join(); }
+  explicit /*f*/ jthread /*x*/(Args &&... args) : t(std::forward<Args>(args)...) {}
+  ~/*f*/ jthread /*x*/() { t.join(); }
 };
 ```
 Up to now we saw how to create threads which execute a provided callable but we did not really care about the returned value of the callable.
@@ -57,55 +82,54 @@ clang++ -std=c++17 thread.cpp -O3 -pthread && ./a.out
 The approach to conveniently observe and obtain return values of callables executed in an another thread provided by the standard library are `std::promise` and `std::future`.
 Let's see an example which does not even involve different threads:
 ```pmans
-  auto promise = std::promise<int>();
-  auto future = promise.get_future();
+  auto /*f*/ promise /*x*/ = std::promise<int>();
+  auto /*f*/ future /*x*/ = /*f*/ promise /*x*/.get_future();
   {
-    auto status = future.wait_for(std::chrono::milliseconds(1));
+    auto status = /*f*/ future /*x*/./*b*/ wait_for /*x*/(std::chrono::milliseconds(1));
     assert(std::future_status::timeout == status);
   }
-  promise.set_value(2);
+  promise./*b*/ set_value /*x*/(2);
   {
-    auto status = future.wait_for(std::chrono::milliseconds(1));
+    auto status = /*f*/ future /*x*/./*b*/ wait_for /*x*/(std::chrono::milliseconds(1));
     assert(std::future_status::ready == status);
-    future.wait(); // blocking
-    auto value = future.get(); // get 2
+    /*f*/ future /*x*/./*b*/ wait /*x*/(); // blocking
+    auto value = /*f*/ future /*x*/./*b*/ get /*x*/(); // get 2
   }
 ```
-> What is the basic idea of std::promise/std::future pair, how might an implementation loop like?
+> What is the basic idea of std::promise/std::future pair, how might an implementation look like?
 
 Now let's see the same example when using a thread to set "fulfill the promise":
 ```pmans
-  auto promise = std::promise<int>();
-  auto future = promise.get_future();
-  auto callable = [&promise]() {
+  auto /*f*/ promise /*x*/ = std::promise<int>();
+  auto /*f*/ future /*x*/ = /*f*/ promise /*x*/./*b*/ get_future /*x*/();
+  auto /*f*/ callable /*x*/ = [&promise]() {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    promise.set_value(4);
+    /*f*/ promise /*x*/./*b*/ set_value /*x*/(4);
   };
-  std::thread t(std::move(callable));
+  std::thread t(std::move(/*f*/ callable /*x*/));
   {
-    auto status = future.wait_for(std::chrono::milliseconds(1));
+    auto status = /*f*/ future /*x*/./*b*/ wait_for /*x*/(std::chrono::milliseconds(1));
     assert(std::future_status::timeout == status);
   }
   {
-    future.wait();             // blocking
-    auto value = future.get(); // get 4
-    // auto value2 = future.get(); // exception
+    /*f*/ future /*x*/./*b*/ wait /*x*/();             // blocking
+    auto value = /*f*/ future /*x*/./*b*/ get /*x*/(); // get 4
   }
   t.join();
 ```
-> We can see that the callable had to be adopted (compared to having a regular return value). Is this desirable?
+> We can see that the callable had to be adopted (compared to having a regular `return` value). Is this desirable?
 
 A convenient approach to utilize "unmodified" callables with non void return types with threads is `std::packaged_task`:
 ```pmans
-  auto callable = []() {
+  auto /*f*/ callable /*x*/ = []() {
     return 6;
   };
-  auto task = std::packaged_task<int()>(std::move(callable));
-  auto future = task.get_future();
-  std::thread t(std::move(task));
+  auto /*f*/ task /*x*/ = /*b*/ std::packaged_task<int()> /*x*/i(std::move(/*f*/ callable /*x*/));
+  auto /*f*/ future /*x*/ = /*f*/ task /*x*/.get_future(); // get future handle before moving in execution
+  std::thread t(std::move(/*f*/ task /*x*/));
   {
-    future.wait();             // blocking
-    auto value = future.get(); // get 6
+    /*f*/ future /*x*/.wait();             // blocking
+    auto value = /*f*/ future /*x*/.get(); // get 6
     std::cout << value << std::endl;
   }
   t.join();
@@ -118,17 +142,17 @@ clang++ -std=c++17 thread.cpp -O3 -pthread && ./a.out  # (last item)
 ```
 
 ## std::async
-To even further simplify the triggering of a execution of a callable in a separate thread `std::async` can be used:
+To even further simplify the triggering of an execution of a callable in a separate thread `std::async` can be used:
 ```pmans
   auto callable = [](int N, const std::string &str) {
     for (int i = 0; i < N; ++i)
       std::cout << str << std::endl;
   };
   int arg1 = 3;
-  auto a1 = std::async(callable, arg1, "default");
-  auto a2 = std::async(std::launch::deferred, callable, arg1, "deferred");
-  auto a3 = std::async(std::launch::async, callable, arg1, "async");
-  auto a4 = std::async(std::launch::async, callable, arg1, "async2");
+  auto f1 = /*b*/ std::async /*x*/(callable, arg1, "default");
+  auto f2 = /*b*/ std::async /*x*/(/*f*/ std::launch::deferred /*x*/,  callable, arg1, "deferred");
+  auto f3 = /*b*/ std::async /*x*/(/*f*/ std::launch::async /*x*/, callable, arg1, "async");
+  auto f4 = /*b*/ std::async /*x*/(/*f*/ std::launch::async /*x*/, callable, arg1, "async2");
   f4.wait();
   f3.wait();
   f1.wait();
@@ -141,20 +165,20 @@ Also `std::async` exhibits some properties which might be unexpected:
 **Example #1**
 ```pmans
   {
-    auto future1 = std::async(std::launch::async, callable, arg1, "async");
+    auto future1 = /*b*/ std::async /*x*/(std::launch::async, callable, arg1, "async");
   }
   {
-    auto future2 = std::async(std::launch::async, callable, arg1, "async");
+    auto future2 = /*b*/ std::async /*x*/(std::launch::async, callable, arg1, "async");
   }  
 ```
 **Example #2**
 ```pmans
-  { // temporary object (future) block on destruction
-    std::async(callable, arg1, "is this ...");
-    std::async(callable, arg1, "... async?");
+  { 
+    /*b*/ std::async /*x*/(callable, arg1, "is this ...");
+    /*b*/ std::async /*x*/(callable, arg1, "... async?");
   }
 ```
-> For the two example above, will the two calls result in an overlapping execution of `callable` in two threads?
+> For the two examples above, will the two calls result in an overlapping execution of `callable` in two threads?
 
 ```
 clang++ -std=c++17 async.cpp -O3 -pthread && ./a.out
@@ -164,35 +188,35 @@ clang++ -std=c++17 async.cpp -O3 -pthread && ./a.out
 For the probably most common synchronization task, i.e., protecting read or write access to a shared variable, the standard library provides `std::mutex` which is recommended to be used only in conjunction with a `std::unique_lock`  or `std::lock_guard`.
 If a mutex would be used without a lock this can look like this:
 ```pmans
-    std::mutex m;
+    /*b*/ std::mutex /*x*/ /*f*/ m /*x*/;
     std::vector<double> shared_data;
-    auto manip = [&m, &shared_data]() {
-      m.lock();
+    auto manip = [&/*f*/ m /*x*/, &shared_data]() {
+      /*f*/ m /*x*/./*b*/ lock /*x*/();
       // manipulate shared_data
-      m.unlock();
+      /*f*/ m /*x*/./*b*/ unlock /*x*/();
     };
 ```
 > Why is this usage error-prone?
 
 When using a `lock_guard` the example transforms to this:
 ```pmans
-    std::mutex m;
+    std::mutex /*f*/ m /*x*/;
     std::vector<double> shared_data;
-    auto manip = [&m, &shared_data]() {
-      std::lock_guard<std::mutex> lock(m);
+    auto manip = [&/*f*/ m /*x*/, &shared_data]() {
+      /*b*/ std::lock_guard<std::mutex> /*x*/ /*f*/ lock /*x*/(/*f*/ m /*x*/);
       // manipulate shared_data
     };
 ```
 In situations where is is required to acquire multiple mutexes before performing a manipulation, `unique_lock` can be utilized like this:
 ```pmans
-    std::mutex m1;
-    std::mutex m2;
+    std::mutex /*f*/ m1 /*x*/;
+    std::mutex /*f*/ m2 /*x*/;
     std::vector<double> shared_data1;
     std::vector<double> shared_data2;
-    auto manip = [&m1, &m2, &shared_data1, &shared_data2]() {
-      std::unique_lock<std::mutex> dlock1(m1, std::defer_lock);
-      std::unique_lock<std::mutex> dlock2(m1, std::defer_lock);
-      std::lock(dlock1, dlock2); 
+    auto manip = [&/*f*/ m1 /*x*/, &/*f*/ m2 /*x*/, &shared_data1, &shared_data2]() {
+      std::unique_lock<std::mutex> /*b*/ dlock1 /*x*/(/*f*/ m1 /*x*/, std::defer_lock);
+      std::unique_lock<std::mutex> /*b*/ dlock2 /*x*/(/*f*/ m2 /*x*/, std::defer_lock);
+      std::lock(/*b*/ dlock1 /*x*/, /*b*/ dlock2 /*x*/); 
       // manipulate shared_data1 and shared_data2 together
     };
 ```
@@ -223,22 +247,22 @@ struct Other {
 
 struct Widget { 
   Other o;
-  void mod1() {
+  void /*b*/ mod1 /*x*/() {
     if (o.a > 0) {
       --o.a;
       ++o.b;
     }
   }
-  void mod2() {
+  void /*b*/ mod2 /*x*/() {
     if (o.a > 0) {
       ++o.a;
       --o.b;
     }
   }
-  int inspect() const { return o.a + o.b; }
+  int /*b*/ inspect /*x*/() const { return o.a + o.b; }
 };
 ```
-> We will lock how multi-threaded accesses `Widget` above can be synchronized to guarantee the invariant of `Other`, namely `a+b==10`
+> We will look how multi-threaded accesses `Widget` above can be synchronized to guarantee the invariant of `Other`, namely `a+b==10`
 ```
 clang++ -std=c++17 mutex_lock.cpp -O3 -pthread && ./a.out
 ```
@@ -248,12 +272,12 @@ Another important synchronization primitive in the standard library is `std::con
 > Why can it be attractive to reuse threads for subsequent tasks?
 
 The `std::condition_variable` is always used in combination with a lock, let's seen a minimal example to demonstrate it's usefulness:
-```pmans
+```
 clang++ -std=c++17 convar.cpp -O3 -pthread && ./a.out 
 ```
 
 ## A thread pool
-Finally, we will lock at a simple thread pool implementation building on top of all previously discusses primitives:
+Finally, we will look at a simple thread pool implementation building on top of all previously discusses primitives:
 - `std::async` + `std::future`: for launching the initial threads and to obtain a future as handles
 - `std::condition_variable`: to notify one the worker threads when a task/work-item is ready to be assigned
 - `std::unique_lock`: to guard the multi-threaded access to the queue of work items
@@ -268,24 +292,25 @@ The standard library provides a wrapper for synchronizing access to entities whi
 - integer types
 - pointer types
 ```pmans
-std::atomic<int> a(0);
-a++;            // perform atomic increment (specialization for int)
-a.fetch_add(1); // equivalent
-a += 5;         // perform atomic addition (specialization for int)
-a.fetch_add(5); // equivalent
+/*b*/ std::atomic /*x*/<int> /*f*/ a /*x*/(0);
+/*f*/ a /*x*//*b*/ ++ /*x*/;            // (1a) perform atomic increment (specialization for int)
+/*f*/ a /*x*/.fetch_add(1); // (1b) equivalent
+/*f*/ a /*x*/ /*b*/ += /*x*/ 5;         // (2a) perform atomic addition (specialization for int)
+/*f*/ a /*x*/.fetch_add(5); // (2b) equivalent
 ```
 
 > Is the expression `a = a + 5;` below atomic as a whole?
 ```pmans
 std::atomic<int> a(0);
-a = a + 5;
+a = a /*f*/ + /*x*/ 5;  // (3a)
+...         // (3b) equivalent?
 ```
 
 Atomics can be used for the variable which is shared directly, but they can also be used as index to non-atomic memory, see below for a simplistic example:
 ```pmans
 int queue[N]:
 std::atomic<size_t> front;
-void push(int x) {
+void push(int x) { 
     size_t unique_index = front.fetch_add(1);
     queue[unique_index] = x; // unique access here, no interference
 }
