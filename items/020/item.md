@@ -19,12 +19,11 @@ The user has to provide a type (called *generator* in the following) which yield
 
 
 ### Task 1
-It is your task to take the perspective of a user and complete the implementation of two *generators* (in `generators.hpp`) which are compatible with the library iterfaces and the usage in the provided tests in `polymorphism.cpp`.
+It is your task to take the perspective of a user and complete the implementation of two *generators* (in `generators.hpp`) which are compatible with the library interfaces and the usage in the provided tests in `polymorphism.cpp`.
 
-The starting point which is provided looks like this for the approach using *run time polymorphism*:
+The starting point (which is provided) looks like this for the approach using *run time polymorphism*:
 ```pmans
 /* file: generators.hpp */ 
-  // implement virtual base class (formal requirements can be enforced by abstract base class)
   template <class EngineType> class Generator : public GeneratorBase {
   public:
     /*f*/ Generator(typename EngineType::result_type seed) /*x*/ {}
@@ -35,7 +34,6 @@ The base class `GeneratorBase` which prescribes the formal interface is found in
 For the header-only *compile time polymorphism* approach the class looks very similar, just that there is not inheritance:
 ```pmans
 /* file: generators.hpp */ 
-  // implement template class (formal requirements checked by static_assert + type traits) 
   template <class EngineType> class Generator {
 
   public:
@@ -45,7 +43,7 @@ For the header-only *compile time polymorphism* approach the class looks very si
 ```
 The formal interface is enforced at compile type using `static_assert`s  in `librandompi/RandomPi_headeronly.hpp`.
 
-It is your task to complete/adopt the mock-up implementations such that the classes make use of the predefined random number generators from the stlib (in `<random>`) to draw the random numbers if they are constructed like this for the tests:
+It is your task to complete/adopt the mock-up implementations such that the classes make use of the predefined random number generators from the stdlib (in `<random>`) to draw the random numbers if they are constructed like this for the tests:
 ```pmans
 /* file: polymorphism.cpp */
 auto gen = std::make_shared<headeronly::Generator</*f*/ std::minstd_rand /*x*/>>(seed); // basic generator
@@ -56,11 +54,14 @@ Further it is required that the  `operator()` yields a random number in the inte
 ### Task 2: Performance observations
 
 In this second task you have to collect some performance results subject to the following variations:
-- Debug vs Release build (use CMake to change this setting)
-- *virtual* vs *pure virtual* function (edit `librandompi/RandomPi_library.hpp` to change this)
-- run time vs compile time polymporphism (the tests in `polymorpism.cpp` already measure both)
+- Debug vs Release build 
+  - Note: use CMake to change this setting
+- *virtual* vs *pure virtual* function for the `operator()` 
+  - Note: edit `librandompi/RandomPi_library.hpp` to change this
+- run time vs compile time polymorphism 
+  - Note: the tests in `polymorphism.cpp` already measure both
 
-It is recommended to use the tests provided in `polymorpism.cpp` (which is compiled to the `testPolymorphism` executable) to fill the following tables for a fixed number of random samples (e.g. 5e7):
+It is recommended to use the tests provided in `polymorphism.cpp` (which is compiled to the `testPolymorphism` executable) to fill the following tables for a fixed number of random samples (e.g. 5e7):
 
 **Using std::minstd_rand**
 | Build Type  | virtual  | pure virtual  | header-only  | 
@@ -74,7 +75,7 @@ It is recommended to use the tests provided in `polymorpism.cpp` (which is compi
 | Debug  | runtime?  | runtime?  |  runtime? |
 | Release  | runtime?  | runtime?  | runtime?  |
 
-**Note**: It is not required to submit your performance results but you have to be able to report your results qualitatively and discuss them in the dicussion sessions.
+**Note**: It is not required to submit your performance results but you have to be able to report your results qualitatively and discuss them in the discussion sessions.
 
 ## Background: estimating the value of Pi
 
@@ -123,7 +124,7 @@ librandompi/RandomPi_library.hpp     (new)
 librandompi/RandomPi_library.hpp     (new)
 libRandomPi/RandomPi_headeronly.cpp  (new)
 generators.hpp                       (new)
-polymporphism.cpp                    (new)
+polymorphism.cpp                    (new)
 .gitignore
 CMakeLists.txt                       (updated: integrate build for EX3.3)
 fibonacci_iterator.cpp
