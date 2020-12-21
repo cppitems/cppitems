@@ -19,8 +19,9 @@
 | **Mo	30.11.2020**|	**4pm**	 |	EX2 submission **deadline**|
 | Tue	01.12.2020|	4pm-7pm	 |EX2 online discussion (1/3 of grade)||
 | Thu	03.12.2020|	9-11am |	L8, handout EX3.1, FAQ EX2|
-| Thu	10.12.2020|	9-11am |	L9, handout EX3.2, EX3.3|
+| Thu	10.12.2020|	9-11am |	L9, handout EX3.2 |
 | Thu	17.12.2020|	9-11am |	L10, questions on EX3 |
+| Mo	21.12.2020|	-- |	handout EX3.3 (questions via chat or mail) |
 | **Mo	11.01.2021**|	**4pm**	 |EX3	submission **deadline**|
 | Tue	12.01.2021|	4pm-7pm |	EX3 online discussion (1/3 of grade)|
 | Thu	14.01.2021|	9-11pm |	L11, last lecture|
