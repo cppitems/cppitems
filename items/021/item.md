@@ -36,14 +36,20 @@ We will have a look at some important synchronization primitives to illustrate "
 ## std::thread
 Constructing a `std::thread` in C++ can look likes this, when using a callable which requires some arguments:
 ```pmans
-      auto /*f*/ callable /*x*/ = [](int /*f*/ a /*x*/, int /*f*/ b /*x*/) {
+      double c = 0;  
+      auto /*f*/ callable /*x*/ = [&c](int /*f*/ a /*x*/, int /*f*/ b /*x*/) {
         std::cout << a + b << std::endl;
-        return a + b;
+        //--c; // OK? // unsynchronized read and writes
+        return a + b + c;
       };
       int arg1 = 1;
       int arg2 = 1;
-      /*b*/ std::thread /*x*/ thread(/*f*/ callable /*x*/, /*f*/ arg1 /*x*/, /*f*/ arg2 /*x*/);
+      /*b*/ std::thread /*x*/ thread(/*f*/ callable /*x*/, /*f*/ arg1 /*x*/, /*f*/ arg2 /*x*/); 
+      // how costly is creating a thread?
+      /*b*/ std::thread /*x*/ thread2(/*f*/ callable /*x*/, /*f*/ arg1 /*x*/, /*f*/ arg2 /*x*/);      
       thread.join();
+      thread2.join();
+      // (1) c value?
 ``` 
 Here, a function object obtained from a lambda expression is used.
 After construction `thread` immediately invokes the callable using the provided arguments in a new thread of execution:
@@ -51,6 +57,7 @@ After construction `thread` immediately invokes the callable using the provided 
 - global variables are accessible
 
 > Can variables be made available in the new thread when capturing them as references or by-value?
+> - yes, capturing with lambda works ("lifting" into new thread context)
 
 The construction of a thread does not support passing references as constructor arguments, this is why the following is not immediately possible:
 ```pmans
@@ -58,6 +65,8 @@ The construction of a thread does not support passing references as constructor 
       int arg1 = 2;
       int arg2 = 2;
       /*b*/ std::thread /*x*/ thread(/*f*/ callable /*x*/, /*f*/ arg1 /*x*/, /*f*/ arg2 /*x*/); // does not compile
+       std::thread /*x*/ thread(/*f*/ callable /*x*/, /*f*/ std::ref(arg1) /*x*/, /*f*/ std::ref(arg2) /*x*/); 
+       // solution
       ...
 ```
 > How to overcome this problem if we want to pass a reference (e.g., a large object to be manipulated by the thread)?
@@ -82,13 +91,13 @@ clang++ -std=c++17 thread.cpp -O3 -pthread && ./a.out
 The approach to conveniently observe and obtain return values of callables executed in an another thread provided by the standard library are `std::promise` and `std::future`.
 Let's see an example which does not even involve different threads:
 ```pmans
-  auto /*f*/ promise /*x*/ = std::promise<int>();
-  auto /*f*/ future /*x*/ = /*f*/ promise /*x*/.get_future();
+  auto /*f*/ promise /*x*/ = std::promise<int>(); // create promise: no future attached
+  auto /*f*/ future /*x*/ = /*f*/ promise /*x*/.get_future(); // paired with future
   {
     auto status = /*f*/ future /*x*/./*b*/ wait_for /*x*/(std::chrono::milliseconds(1));
     assert(std::future_status::timeout == status);
   }
-  promise./*b*/ set_value /*x*/(2);
+  promise./*b*/ set_value /*x*/(2); // promise fullfilled
   {
     auto status = /*f*/ future /*x*/./*b*/ wait_for /*x*/(std::chrono::milliseconds(1));
     assert(std::future_status::ready == status);
@@ -97,6 +106,10 @@ Let's see an example which does not even involve different threads:
   }
 ```
 > What is the basic idea of std::promise/std::future pair, how might an implementation look like?
+> - there is always a pair future/promise
+> - promise side can set a value
+> - future side can wait() and get()
+> - typically: promise is set in different thread than future
 
 Now let's see the same example when using a thread to set "fulfill the promise":
 ```pmans
@@ -104,9 +117,11 @@ Now let's see the same example when using a thread to set "fulfill the promise":
   auto /*f*/ future /*x*/ = /*f*/ promise /*x*/./*b*/ get_future /*x*/();
   auto /*f*/ callable /*x*/ = [&promise]() {
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    /*f*/ promise /*x*/./*b*/ set_value /*x*/(4);
+    /*f*/ promise /*x*/./*b*/ set_value /*x*/(4); // not a native return but similar
+    // or better to have regular return here?
+    return 4;
   };
-  std::thread t(std::move(/*f*/ callable /*x*/));
+  std::thread t(std::move(/*f*/ callable /*x*/)); // new thread -> promise set
   {
     auto status = /*f*/ future /*x*/./*b*/ wait_for /*x*/(std::chrono::milliseconds(1));
     assert(std::future_status::timeout == status);
@@ -118,6 +133,7 @@ Now let's see the same example when using a thread to set "fulfill the promise":
   t.join();
 ```
 > We can see that the callable had to be adopted (compared to having a regular `return` value). Is this desirable?
+> - no, not desirable
 
 A convenient approach to utilize "unmodified" callables with non void return types with threads is `std::packaged_task`:
 ```pmans
@@ -147,6 +163,7 @@ To even further simplify the triggering of an execution of a callable in a separ
   auto callable = [](int N, const std::string &str) {
     for (int i = 0; i < N; ++i)
       std::cout << str << std::endl;
+      return 5;
   };
   int arg1 = 3;
   auto f1 = /*b*/ std::async /*x*/(callable, arg1, "default");
@@ -164,21 +181,24 @@ Also `std::async` exhibits some properties which might be unexpected:
 
 **Example #1**
 ```pmans
-  {
-    auto future1 = /*b*/ std::async /*x*/(std::launch::async, callable, arg1, "async");
-  }
-  {
-    auto future2 = /*b*/ std::async /*x*/(std::launch::async, callable, arg1, "async");
+  { // (1a)
+    auto future = /*b*/ std::async /*x*/(std::launch::async, callable, arg1, "async");
+    func(std::move(future));
+  } // ~future(){future.wait();}
+  { // (1b)
+    auto future = /*b*/ std::async /*x*/(std::launch::async, callable, arg1, "async");
   }  
 ```
 **Example #2**
 ```pmans
-  { 
+  { // (2)
     /*b*/ std::async /*x*/(callable, arg1, "is this ...");
+    // temporary returned, not captured, ->destroyed imm.
     /*b*/ std::async /*x*/(callable, arg1, "... async?");
   }
 ```
 > For the two examples above, will the two calls result in an overlapping execution of `callable` in two threads?
+> - d
 
 ```
 clang++ -std=c++17 async.cpp -O3 -pthread && ./a.out
@@ -193,8 +213,10 @@ If a mutex would be used without a lock this can look like this:
     auto manip = [&/*f*/ m /*x*/, &shared_data]() {
       /*f*/ m /*x*/./*b*/ lock /*x*/();
       // manipulate shared_data
+      ...
       /*f*/ m /*x*/./*b*/ unlock /*x*/();
     };
+    // this lambda could be running on different thread simult.
 ```
 > Why is this usage error-prone?
 
@@ -211,14 +233,26 @@ In situations where is is required to acquire multiple mutexes before performing
 ```pmans
     std::mutex /*f*/ m1 /*x*/;
     std::mutex /*f*/ m2 /*x*/;
+    std::mutex /*f*/ m12 /*x*/; // not a mutex situation anymore :)
     std::vector<double> shared_data1;
     std::vector<double> shared_data2;
     auto manip = [&/*f*/ m1 /*x*/, &/*f*/ m2 /*x*/, &shared_data1, &shared_data2]() {
       std::unique_lock<std::mutex> /*b*/ dlock1 /*x*/(/*f*/ m1 /*x*/, std::defer_lock);
       std::unique_lock<std::mutex> /*b*/ dlock2 /*x*/(/*f*/ m2 /*x*/, std::defer_lock);
-      std::lock(/*b*/ dlock1 /*x*/, /*b*/ dlock2 /*x*/); 
+      std::lock(/*b*/ dlock1 /*x*/, /*b*/ dlock2 /*x*/); // locked in "atomic op, one sweep"
       // manipulate shared_data1 and shared_data2 together
+/*b*/ std::lock_guard<std::mutex> /*x*/ /*f*/ lock1 /*x*/(/*f*/ m1 /*x*/);    // t1 is here and lock1    
+/*b*/ std::lock_guard<std::mutex> /*x*/ /*f*/ lock2 /*x*/(/*f*/ m2 /*x*/);  
+
+  
     };
+func(){
+...
+/*b*/ std::lock_guard<std::mutex> /*x*/ /*f*/ lock2 /*x*/(/*f*/ m2 /*x*/);  // t2 is here and lock2
+/*b*/ std::lock_guard<std::mutex> /*x*/ /*f*/ lock1 /*x*/(/*f*/ m1 /*x*/);     
+...
+}
+
 ```
 > Why is the last snippet preferable over a sequential locking using two `lock_guards`?
 
@@ -270,6 +304,7 @@ clang++ -std=c++17 mutex_lock.cpp -O3 -pthread && ./a.out
 ## std::condition_variable
 Another important synchronization primitive in the standard library is `std::condition_variable`: it allows to suspend the execution of threads an notify a single or all of them if a condition becomes true. This can be used to avoid busy waiting of existing threads which have completed their tasks and shall be reused once new tasks are available.
 > Why can it be attractive to reuse threads for subsequent tasks?
+> - overhead when spawning a new one is >> than reusing
 
 The `std::condition_variable` is always used in combination with a lock, let's seen a minimal example to demonstrate it's usefulness:
 ```
