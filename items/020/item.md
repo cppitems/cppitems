@@ -61,19 +61,21 @@ In this second task you have to collect some performance results subject to the 
 - run time vs compile time polymorphism 
   - Note: the tests in `polymorphism.cpp` already measure both
 
-It is recommended to use the tests provided in `polymorphism.cpp` (which is compiled to the `testPolymorphism` executable) to fill the following tables for a fixed number of random samples (e.g. 5e7):
+It is recommended to use the tests provided in `polymorphism.cpp` (which is compiled to the `testPolymorphism` executable) to fill the following table for a fixed number of random samples (e.g. 5e7) when
 
-**Using std::minstd_rand**
-| Build Type  | virtual  | pure virtual  | header-only  | 
-|---|---|---|---|
-| Debug  | runtime?  | runtime?  |  runtime? |
-| Release  | runtime?  | runtime?  | runtime?  |
+- using `std::minstd_rand`:
 
-**Using std::mt19937**
-| Build Type  | virtual  | pure virtual  | header-only  | 
+|  | virtual  | pure virtual  | header-only  | 
 |---|---|---|---|
-| Debug  | runtime?  | runtime?  |  runtime? |
-| Release  | runtime?  | runtime?  | runtime?  |
+| **Debug**  | runtime?  | runtime?  |  runtime? |
+| **Release**  | runtime?  | runtime?  | runtime?  |
+
+- and when using `std::mt19937`:
+
+|  | virtual  | pure virtual  | header-only  | 
+|---|---|---|---|
+| **Debug**  | runtime?  | runtime?  |  runtime? |
+| **Release**  | runtime?  | runtime?  | runtime?  |
 
 **Note**: It is not required to submit your performance results but you have to be able to report your results qualitatively and discuss them in the discussion sessions.
 
