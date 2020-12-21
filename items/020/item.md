@@ -18,7 +18,7 @@ In this exercise, two full implementations of a small library are provided which
 The user has to provide a type (called *generator* in the following) which yields a double precision random number between 0 and 1 when invoked without arguments using the `operator()`.
 
 
-### Task 1
+### Task 1: user provided generator class
 It is your task to take the perspective of a user and complete the implementation of two *generators* (in `generators.hpp`) which are compatible with the library interfaces and the usage in the provided tests in `polymorphism.cpp`.
 
 The starting point (which is provided) looks like this for the approach using *run time polymorphism*:
@@ -50,6 +50,8 @@ auto gen = std::make_shared<headeronly::Generator</*f*/ std::minstd_rand /*x*/>>
 auto gen = std::make_shared<headeronly::Generator</*f*/ std::mt19937 /*x*/>>(seed); // mersenne twister generator
 ```
 Further it is required that the  `operator()` yields a random number in the interval [0, 1), e.g. using `std::uniform_real_distribution` from `<random>`.
+
+Note: you are allowed to adopt the classes as you need, as long as they compile with the provided tests in `polymorphism.cpp`.
 
 ### Task 2: Performance observations
 
@@ -115,7 +117,7 @@ Fig.1: First quadrant of the unit circle, shown as a dashed grey line. It is use
 ## Submission
 
 Finally, you should submit EX3 (all three parts) using a single repository `ex3`.
-Therefore you repo should look like this after EX3.2:
+Therefore you repo should look like this after EX3.3:
 
 ```
 IteratorTests/*
@@ -126,7 +128,7 @@ librandompi/RandomPi_library.hpp     (new)
 librandompi/RandomPi_library.hpp     (new)
 libRandomPi/RandomPi_headeronly.cpp  (new)
 generators.hpp                       (new)
-polymorphism.cpp                    (new)
+polymorphism.cpp                     (new)
 .gitignore
 CMakeLists.txt                       (updated: integrate build for EX3.3)
 fibonacci_iterator.cpp
