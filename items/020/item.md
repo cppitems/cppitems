@@ -108,7 +108,7 @@ A_1 = N_inside / N = pi / 4
 --> pi = 4 * N_inside / N
 ```
 
-![unit_circle](unit_circle.png)
+![unit_circle](https://github.com/cppitems/cppitems/raw/master/items/020/unit_circle.png)
 
 Fig.1: First quadrant of the unit circle, shown as a dashed grey line. It is used to generate random coordinates a and b. Only a is inside the circle, so using only those two points, our estimate of Pi is 4 * 1/2 = 2 .
 
