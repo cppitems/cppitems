@@ -35,15 +35,14 @@ template <class Container> void rangeLoopOutput(Container &cont) {
 
 template <class Container> void explicitLoopOutput(Container &cont) {
   std::cout << "Explicit Loop output: " << std::endl;
-  for (typename Container::const_iterator it = cont.begin(); it != cont.end(); ++it) {
+  for (auto it = cont.begin(); it != cont.end(); ++it) {
     std::cout << *it << std::endl;
   }
 }
 
 template <class Container>
 void singleElementOutput(const Container &cont, unsigned index) {
-  // make const_iterator from iterator
-  typename Container::const_iterator it = cont.begin();
+  auto it = cont.begin();
   for (unsigned i = 0; i < index; ++i) {
     ++it;
   }
