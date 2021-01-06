@@ -12,6 +12,9 @@ int main() {
   {
     typename list<int>::iterator it;
     typename list<int>::const_iterator cit;
+
+    *it;
+    *cit;
   }
 
   // mutable list
