@@ -1,4 +1,4 @@
-9 // item status
+1 // item status
 # Exceptions
 Let's first consider C (which does not have exceptions). But of course the desire to capture and handle unforeseen events is present. A pattern to achieve this is to always use the return value of a function as error indication. Let's introduce this pattern for a `grid_init` function to capture problems during allocation which we adopt from
 ```pmans
@@ -30,7 +30,7 @@ int main() {
     grid_free(&grid);
     /*b*/ return 0; /*x*/;    // success
   }
-  /*b*/ return error; /*x*/;   // forward error code
+  /*b*/ return error; /*x*/   // forward error code
 }
 ```
 Essentially, this pattern of error code handling forces many functions to return an error code: obviously those function which do things that are error-prone (like allocation, or user input) but also all other function which have to forward error codes of other functions. This is necessary to pass the error information up the call stack. This approach is not ideal, as the source code in many functions is concerned about error code logic, even if the error is just forwarded:
@@ -57,6 +57,7 @@ C++ provides an extra mechanism to handle such scenarios: exceptions. To see how
 ```
 
 > Which objects can be "thrown"?
+> - any object (copyable)
 
 An exception can be thrown anywhere in the code. The normal execution is interrupted at this point and the exception object is created. 
 In our case the exception object is a string literal "bad alloc" which provides minimal information about what happened (of course also more complex exceptions objects can be created). 
@@ -66,8 +67,8 @@ In our example we adopt the main function body to catch exceptions that match ou
 ```pmans
 int main() /*b*/ try { /*x*/
   grid_init(&grid, 3, 4);            // can throw
-  ...     
-  grid_free(&grid); 
+  throw "error";    // throw string literal
+  grid_free(&grid);  
   return 0;
 /*b*/ } catch (char const *e) { /*x*/           // matching catch block
   ...                                // output debug information 
@@ -75,10 +76,13 @@ int main() /*b*/ try { /*x*/
 /*b*/ } /*x*/ 
 ```
 > Are exceptions a lightweight?
+> - no undwinding (destructions)
+> - change execution order 
 
 Exceptions provide a powerful mechanism to unwind the call stack until a matching catch block is found. During unwinding a lot of local variables/objects go out of scope and are automatically destructed (the destructor is called) according to the rules of the C++ standard.
 
 > Can more than one exception be active at the same time?
+> - no
 
 The intended use of exceptions is to react on (rare) cases where there is an issue with an external resource (e.g., access to a file or memory allocation). 
 Valuable debug information can be collected before stack unwinding (part) of an application.
@@ -129,28 +133,34 @@ void no_fail() /*b*/ noexcept /*x*/ {
 ```
 
 > Why is `noexcept` useful?
+> - optimization
 
 > What happens if an exception is thrown in a noexcept function?
-
-> Which objects can be *thrown*?
+> - termination
 
 # CMake
 CMake is a configuration generator.
 It is not a build-system/toolchain -- but it **knows** everything about some build-systems/toolchains.
 
 > Examples for build-systems/toolchains?
+> - make, Xcode, VS
 
 CMake generates configurations for the supported build-systems.
 It provides ways to formulate/encode a high-level logical project configuration in a generic way using its own language (as far as possible, e.g., some things map directly to options/settings in a specific toolchain). 
 This logical project configuration is then used to generate configurations for different build-systems. 
 
 > Does CMake support other languages than C/C++?
+> - focus C/C++ Fortan/ObjC(Apple)/swift
 
 > How should much should the release date of your compiler and CMake you use differ?
+> - cmake should be a bit more recent than compiler
 
 Currently, for C++, there is no practical alternative to CMake.
 
 You have seen many CMakeLists.txt files in the exercises: It is not required to understand all details in a CMake configuration in order to use it.
+
+> When do you have to understand details of the CMake config of a dependency?
+> - if the CMake config does not allow you to build/use the project suitable for your use case
 
 In general, CMake files can be considered as source code and all general best practices apply, too:
 - consistent style and conventions
@@ -165,8 +175,10 @@ In general, CMake files can be considered as source code and all general best pr
 - another group of properties is concerned with how a target can be used (after it is build/installed): **usage-requirements**
 
 > Examples for different categories of **build-requirements**?
+> - source files, link/inlcude dirs, compiler options, preprocessor defines
 
 > Target properties can be *transitive*. What does that mean?
+> - if targets depend on each other this propagates the requirements
 
 Alternative to the *target-centric* the "classic" CMake way is to use (many)variables which are not immediately coupled to a specific target.
 
@@ -179,6 +191,7 @@ If a project uses/supports CMake this can mean different things:
 - using CTest
 
 > What can be done if a project does not support CMake but needs to be integrated in a larger CMake based project?
+> - write a custom FindXXX.cmake  `find_package(XXX)`
 
 ### Project boundaries/modularity
 It might happen that a project provides a "monolithic CMake support": many things (e.g., sub-projects) are configured in a non-modular way. 
@@ -186,6 +199,7 @@ The "Modern" CMake approach can help to avoid/resolve such situations:
 Each target can exits on its own (being build and consumed), declaring dependencies between targets allows to configure more complex projects.
 
 > If you have to patch a CMakeLists.txt of a project you depend on, is this a good sign? If not, what is the "right" way to customize a CMake based project you consume?
+> - passing commandline arguments/setting cmake variables 
 
 ## Example
 Let's look at an example to illustrate the *target-centric* approach:
