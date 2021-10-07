@@ -1,0 +1,11 @@
+*.o
+*.out
+*.bc
+*.so
+*.a
+*.ll
+main
+build/
+compile_commands.json
+.clangd/
+.bash_history_theia
