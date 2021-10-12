@@ -85,4 +85,5 @@ This difference is extremely important. Make sure you are always aware of:
   - Makefiles tend to be very verbose for larger projects
   - CMake allows to define dependencies on a higher level; finally, CMake generates Makefiles according ti these dependencies 
 
-
+# The source edited during the session can be found here:
+https://github.com/cppitems/cppitems/tree/master/items/003
