@@ -3,7 +3,7 @@
  
 ## Schedule:
 | Day  | Hour | Description  | 
-|---|---|---|---|---|
+|---|---|---|
 | Thu 07.10.2021 |	9-11am | L0, handout EX0 | 
 | Thu 14.10.2021 | 9-11am |	L1, FAQ EX0  |
 | **Mo	18.10.2021**|	**4pm**|	EX0	submission **deadline** |
@@ -59,7 +59,12 @@ https://cppitems.github.io/
 
 # Exercise submission
 Each student has to submit the exercises (source code) **individually** (no group submissions).
-Submission is done by pushing the solution to a git-repository on https://tea.iue.tuwien.ac.at before the respective deadlines (user accounts are provided). The head of the `master` branch at the end of the submission period is considered as final submission. The names of the repositories must strictly follow this scheme:
+Submission is done by pushing the solution to a git-repository on https://tea.iue.tuwien.ac.at before the respective deadlines.
+The user accounts use your 8-digit Matrikelnummer:
+- username: `e<Matrikelnummer>`  (e.g., e01234567)
+- initial pw: `<Matrikelnummer>`   (e.g., 01234567)
+
+The head of the `master` branch at the end of the submission period is considered as final submission. The names of the repositories must strictly follow this scheme:
 
 - `ex0` for EX0
 - `ex1.1`, `ex1.2`, `ex1.3` for EX1 
@@ -77,7 +82,7 @@ Time slots for the online exercise discussion will stay fixed through the semest
 If you cannot participate in the three appointments (due to unresolvable conflicts), let us know in advance:
 
 | Day  | Hour | Description  | 
-|---|---|---|---|---|
+|---|---|---|
 | Tue	09.11.2021|	2pm-7pm |	EX1 online discussion (1/3 of grade)|
 | Tue	30.11.2021|	2pm-7pm	|   EX2 online discussion (1/3 of grade)|
 | Tue	11.01.2022|	2pm-7pm |	EX3 online discussion (1/3 of grade)|
