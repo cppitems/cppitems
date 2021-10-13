@@ -5,6 +5,8 @@
 | Day  | Hour | Description  | 
 |---|---|---|
 | Thu 07.10.2021 |	9-11am | L0, handout EX0 | 
+| Tue 12.10.2021 |	9-10am | Additional support session #1 | 
+| Wed 13.10.2021 |	9-10am | Additional support session #2 |
 | Thu 14.10.2021 | 9-11am |	L1, FAQ EX0  |
 | **Mo	18.10.2021**|	**4pm**|	EX0	submission **deadline** |
 | Thu	21.10.2021|	9-11am |	L2, handout EX1.1 |
@@ -47,11 +49,17 @@
 # Distance Learning
 The lectures (Thursdays 9-11am) and discussions of the exercises will be realized in pairs using online video conferences; access links will be announced using TISS.
 
+The room for all lectures is: https://bbb.iue.tuwien.ac.at/b/man-wpn-ea7-3sl
+
+Recordings of the lecures will be available at the same link at the lower part of the page under "Room Recordings".
+
 # Communication
-- Important announcements will be made via the TISS-system. 
+- Important announcements will be made via the TISS-system (make sure you configure your TISS settings such that the course is allowed to send you important news via emails). 
 - Final personal time slots for the discussions will be announced via email.
 - If you have urgent/important questions you can reach us at cpp@iue.tuwien.ac.at.
 - Use https://chat.tuwien.ac.at/channel/360.251.WS21 for topcis/questions which are potentially relevant for others, too.
+- Update lectures slides will always be uploaded to https://cppitems.github.io
+
 
 # Lecture material and exercise handouts
 The lecture material and exercises will be published here:
