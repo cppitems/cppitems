@@ -14,3 +14,6 @@ As a first step today, we will again guide you through cloning, configuring/edit
 
 All exercises in this course will be distributend in form of a git repository and are configured for using CMake. 
 Today, as a second step, we will inspect the structure of EX0 and the accompanying CMake configuration.
+
+The sources from this session can be found at:
+https://github.com/cppitems/ex0/tree/support_session_example
