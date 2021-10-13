@@ -12,7 +12,7 @@ Finally, `grid_free` is used to *deallocate* the memory and reset the structure.
 /* file: grid.h */
 #pragma once 
 struct /*f4*/ Grid {
-  size_t nx;
+  size_t nx; 
   size_t ny;
   double *data;
 };
@@ -49,7 +49,7 @@ double */*b7*/ grid_at(/*f9*/ GridType *grid, int x, int y) {
 #include "grid.h"
 int main() {
   /*f8*/ GridType /*f4*/ grid = {0};
-  /*b9*/ grid_init(&/*f4*/ grid);
+  /*b9*/ grid_init(&/*f4*/ grid); // after that grid has size 3,4
   for (size_t x = 0; x != grid.nx; ++x) {
     for (size_t y = 0; y != grid.ny; ++y) {
       */*b7*/ grid_at(&/*f4*/ grid, x, y) = x + y;
@@ -64,7 +64,78 @@ The `grid_at` function is used to write to the grid.
 
 Note that this library only uses C language features, apart from the *scope resolution operator* `::` for the standard library functions `calloc` and `free`.
 
+
 > Which C++ language features are you missing? 
+>- use `class` instead of `struct`: -> only difference is the default attribute for members and base classes
+>
+>```pmans
+>class Grid : /*b7*/ private Base {
+>  /*b7*/ private size_t nx;
+>}
+>struct Grid : /*b6*/ public Base {
+>  /*b7*/ public size_t nx;
+>}
+>```
+>- use non-static member function instead of free function `grid_at`
+>```pmans
+>struct Grid {
+>  void /*b4*/ init();
+>  void /*b2*/ at(size_t x, size_t y);
+>  void /*b4*/ free();
+>}
+> ...
+>grid/*b5*/ .init();
+>grid/*b3*/ .at(i, j) = ...;
+>grid/*b5*/ .free();
+>```
+>- use constructor/destructor instead of `grid_init`/`grid_free` for initialization and freeing resources:
+>- use `new`/`delete` instead of `malloc`/`free`
+>```pmans
+>struct Grid {
+>  /*f4*/ Grid() : nx(3), ny(4), data( /*b3*/ new double[nx*ny] ) {}  // constructor using 'new'
+>  /*f5*/ ~Grid() { /*b8*/ delete[] data; } // destructor using 'delete'
+>}
+>```
+>- use operator overloading for access
+>- return reference instead of pointer
+>```pmans
+>struct Grid {
+>    /*f7*/ double& /*b*/ operator() /*x*/(size_t x, size_t y){
+>        return data[...];
+>    }
+>}
+>```
+>- make use of containers from the standard library
+>```pmans
+>struct Grid {
+>    size_t nx;
+>    size_t ny:
+>    /*b*/ std::vector<double> /*x*/ data; // vector manages dynamic memory for us
+>}
+>```
+>- use smart pointers (`std::shared_pointer`)
+>```pmans
+>struct Grid {
+>   using /*f3*/ UniquePtr = /*b*/ std::unique_ptr /*x*/<double[]>; // modern typedef 
+>   UniquePtr data;
+>   Grid(int x, int y) : data( x * y ) {}
+>   ~Grid(){} // destructor, nothing to do, due to smart poiner
+>}
+>```
+>
+>- use `auto` type deduction
+>```pmans
+> auto grid = Grid(10,10); // type of grid is deduced from expression
+>```
+> - using templates -> generic grid (for compatible types)
+>```pmans
+>/*b*/ template<typename T> /*x*/ 
+>struct Grid {
+>    size_t nx;
+>    size_t ny:
+>    std::vector</*b1*/ T> data; // genric type 'T'
+>}
+>```
 
 ## File organization
 The library source code is organized using *header* and *source* files.
@@ -80,13 +151,31 @@ For a single file (*header-only*, i.e., one or more headers), the full implement
 This can be advantageous during optimization but leads to longer compilation times (especially, as the compilation of a single compilation unit is hard to parallelize). 
 Any change in the library code requires a recompilation of the dependent projects including the library.
 
-> Why can many optimizations be performed only in scope of a single compilation unit?
+> Why can many optimizations be performed only in scope of a single compilation unit (CU)?
+> - after a CU is translated details are not available in in the "original logic" 
+>- but to optimize, all details and side effects must be visible to the compiler, e.g., consider the optimization of a loop
+>```pmans
+>for(...) {
+>  function_from_other_compilation_unit(...); 
+>} // cannot move loop-invariant code out of this function
+>```
+>- there is also link time optimization (LTO) between objects, but this is not widely applied in practice yet; linking typically "just" resolved symbols.
+
+> So, optimization is best using one big CU. Are there also disadvantages?
+> - yes: compile time (detail: compilation of single CU is not easily parallelizable)
+> - yes: small change in a low level module triggers a "full recompile"
+
+
 
 If separated (into headers and sources), the compilation of the library and the project can happen in different compilation units, requiring a linking step after the compilation of the project.
 Only the compilation unit which has changed needs to be recompiled and can then just be *linked* with the other compilation units. Linking is much faster (just resolving symbols) than *compiling*, so this saves a lot of time in large projects.
 If project-wide *compiler flags* change, a recompilation of all *compilation units* might be necessary.
 
 > What is an example for a "project-wide compiler flag" which requires recompilation of dependent projects?
+>- debug/release/optimization level: `-g` `-O0`  `-O1` `-O2` `-O3`
+>- target for the compilation: `--target=x86_64-pc-linux-gnu -march=native`
+>- static/shared library: `-static` `-shared` `-fPIC`
+>- c++ standard/library: `-std=c++17` `-stdlib=libc++`
 
 ### Distribution
 For a header-only libraries, in the simplest case, simply this headers are distributed. If the library itself has specific compilation options or dependencies, additional configuration instructions are typically provided with the source code.
@@ -95,17 +184,32 @@ If separated, the distribution of the compiled library together with the header 
 This requires a distribution of the compiled versions for all targeted platforms and configurations.
 Additionally, the sources of the library together with build instructions can be distributed.
 
-> Can different compilers/versions be used for building the distributed  
+> Can different compilers/versions be used for building the distributed? Example: DevA uses clang to compile library and ships library; DevB consumes library artifacts but uses gcc
+> - often works (because common compilers use same ABI) if produced binaries are "compatible"
+> - might lead to problems in specific cases; if possible: stick to a single toolchain
 
 ### Template interfaces
 If a library interface includes templates (or is a pure template library), the full implementation hast to be distributed (*header-only*).
 
 > Why is *header-only* distribution required for template interfaces?
-
+>- types for template instantiations are only known at compile time
+>```pmans
+>// library
+>template<typename T> T func(T a, T b) {...};
+>// dependent project might want to use:
+>auto c = func</*b*/ CustomType /*x*/>(a,b); // needs to see function body to compile
+>```
+>- option A) to avoid template interface 1: explicitly force template instantiation (and symbol creation) for some predefined types
+>- option B) to avoid template interface 2: publish a template-free interface; use templates only 'internally'
 ## Build toolchain
 The compilation is performed using a *toolchain* which typically includes a *compiler*, *standard libraries*, *linker*, and *runtime libraries* for the targeted system.
 
 > Examples for each of those?
+>- clang++/LLVM, stdlib: libstdc++(default), but also ships with libc++ as an option
+>- g++/GNU, stdlib: libstdc++(default)
+>- cl.exe (Mircosoft), stdlib: "STL"
+>- icc (Intel compiler), stdlib: libc++(default)
+>- minGW (g++/GNU toolchain for builds on windows)
 
 ### Invocation
 The full set of flags which would be used when compiling our library can be revealed with
@@ -119,6 +223,12 @@ clang++ -### grid.o main.cpp
 which show the arguments which would be used for a compilation and linking step.
 
 > Some examples for compiler flags?
+>- `-g, --debug` generate debug information
+>- `-Werror` warnings as error
+>- `-Wall` `-Weverything` warn about everything
+>-  `-ferror-limit 2` report only first two errors
+>- note: compiler flags can mean different things for different compilers
+>- note: compiler flags can be aliases for a group of separate flags
 
 ### Cross compilation
 Targeting a specific system and architecture which is supported by the available toolchain can look like this:
@@ -128,7 +238,8 @@ clang++ -### --target=wasm32-unknown-wasi --sysroot=... grid.o main.cpp
 ```
 which builds the application for the `wasm32` architecture with an `unknown` vendor assuming a `wasi` system.
 
-> What was set for this triple "arch-vender-system" in the examples above?
+> What was set for this triple "arch-vendor-system" in the examples above?
+> - "x86_64-pc-linux-gnu", i.e., a "x86_64" architecure on a "linux-gnu" system with a generic vendor "pc"
 
 ## Compilation process
 
@@ -181,6 +292,30 @@ which is the starting point for the following translation.
 Note that the order of `#include`s has consequences on the arrangement of this final code document.
 
 > Possible errors during the preprocessing phase are?
+>- preprocessor cannot find a file which should be included (i.e., copy-pasted)
+>```pmans
+>#include "somefile.h" // search paths must be configured appropriately
+>```
+>- double include? -> pops up later; avoid by using header guards
+>```pmans
+>/* file: header.h */
+>#pragma once // more modern (supoorted by all common compilers)
+>// header content
+>``` 
+>```pmans
+>/* file: header.h */
+>#ifndef HEADER_H // classic approach
+>#define HEADER_H
+>// header content
+>#endif HEADER_H
+>```
+>- invalid macro syntax
+>- invalid language syntax, e.g., missing closing parentheses/braces `}` `)`
+>```pmans
+>void foo() { 
+> ...
+>// } accidentally missing closing brace 
+>```
 
 ### 2: Translation
 The translation process is performed according to the selected language standard. Using the C++17 standard for the translation looks like
@@ -205,6 +340,30 @@ FunctionDecl 0x11c1b10 <srcloc>  grid_at 'double *(GridType *, int, int)'
 which allows a direct mapping to names and positions in the original source files.
 
 > How does a for loop look like in the AST?
+> - compile using: `clang-check -extra-arg=-std=c++17 -ast-dump --ast-dump-filter=main loop.cpp --`
+>```pmans
+>  for // for statement
+>  (int i = 0; i != 3; ++i)  // the three expressions  
+>  { // block, e.g., e.g. a 'compound'
+>    ++sum; 
+>  }
+>```
+>```pmans
+>  `-/*b7*/ ForStmt 0x17bff78 <line:4:3, line:8:3>
+>    |-/*b8*/ DeclStmt 0x17bfe60 <line:4:8, col:17>
+>    | `-VarDecl 0x17bfdd8 <col:8, col:16> col:12 used i 'int' cinit
+>    |   `-IntegerLiteral 0x17bfe40 <col:16> 'int' 0
+>    |-<<<NULL>>> 
+>    |-/*b*/ BinaryOperator /*x*/ 0x17bfed0 <col:19, col:24> 'bool' '!='
+>    | |-ImplicitCastExpr 0x17bfeb8 <col:19> 'int' <LValueToRValue>
+>    | | `-DeclRefExpr 0x17bfe78 <col:19> 'int' lvalue Var 0x17bfdd8 'i' 'int'
+>    | `-IntegerLiteral 0x17bfe98 <col:24> 'int' 3
+>    |-/*b*/ UnaryOperator /*x*/ 0x17bff10 <col:27, col:29> 'int' lvalue prefix '++'
+>    | `-DeclRefExpr 0x17bfef0 <col:29> 'int' lvalue Var 0x17bfdd8 'i' 'int'
+>    `-/*b*/ CompoundStmt /*x*/ 0x17bff60 <col:32, line:8:3>
+>      `-UnaryOperator 0x17bff48 <line:5:5, col:7> 'int' lvalue prefix '++'
+>        `-DeclRefExpr 0x17bff28 <col:7> 'int' lvalue Var 0x17bfd20 'sum' 'int'
+>```
 
 If the code documents satisfies the rules imposed by the language standard (i.e., a AST was successfully created), further stages of the translation, which are influenced by compiler flags produce the final output format. 
 This final output object must comply to the language standard w.r.t. to the visibility of internal symbols to other objects, and referencing of external symbols used internally.
@@ -225,6 +384,22 @@ We can see that the names of the functions are mangled using some scheme which i
 Note that the mangling schemes are not part of the C++ standard, but mostly the *Itanium C++ ABI* is used, enabling compatibility between objects created by different compilers.
 
 > Why are names even mangled?
+> - fixed rules for unambiguous mapping of symbols (including the semantic information, e.g., namespaces/template specializations/function parameters
+>```pmans
+>void /*b4*/ func(int);
+>void /*b4*/ func(int, int);
+> namespace mynames {
+>   void /*b4*/ func(int);
+>   void /*b4*/ func(int, int);
+> }
+>```
+> - In contrast, C does not mangle names and directly uses the identifiers as symbols; this can also be acieved for the identifiers of a code section in C++ 
+>```pmans
+>extern "C"
+>{
+>   void /*b4*/ func(int);
+>}
+>```
 
 > Examples for what else is defined in the ABI?
 
@@ -250,9 +425,52 @@ clang++ -Werror -Weverything grid.cpp -c
 which is not a useful default, but is a good starting point as it reports the more granular flags responsible for the individual error groupings.
 
 > Typical errors during compilation?
+> - redefinitions
+>```pmans
+>struct Widget { int i;};
+>struct Widget { int i;}; // redefinition of 'Widget' in same scope
+>```
+> - accessing non-existing entities
+>```pmans
+>struct Widget { int i;}
+>Widget{}.j; // 'Widget' does not have anything to offer at '.i'
+>```
+> - template argument deduction failures
+>```pmans
+>template <typename T> T func(int a) { return T{a}; }
+>func(3); // compiler cannot detect type for 'T' automatically
+>```
+> - ambiguities after name lookup
+>```pmans
+>template <typename T> T func(int a) { return T{a}; }
+>namespace morenames {
+>  template <typename T> T func(int b) { return T{b}; }
+>}
+>func<int>(3); // compiler cannot decide which template to specialize for 'int'
+>```
+> - non-matching signature after successful lookup
+>```pmans
+>void func(int a) {}
+>func(3,3); // invokation is not compatible with the function signature 
+>```
+> - type conversion not available
+>```pmans
+>struct Widget { int i;};
+>void func(int a) {}
+>func(Widget{}); // compiler might not know how to convert from 'Widget' to 'int'
+>```
+> - incompatible value categories
+>```pmans
+>struct Widget { int i;};
+>void func(Widget& w) {}
+>func(Widget{}); // compiler expects an lvalue (reference) here but is presented an rvalue
+>```
 
 > Which types of errors cannot be covered?
- 
+> - logical errors: valid code not implementing the intendent functionality
+>   - tests can be used catch such errors
+> - logical errors might also have "wide ranging" side effects (e.g., out-of-bounds writing, leaking memory)   
+>   - sanitizers can be used to detect such errors 
 
 
 ## Linking
@@ -262,6 +480,10 @@ Linking is performed after all required compilation units are available in some 
 - as shared object files (`*.so`) containing multiple objects and information about dependencies to other shared objects
 
 > Typical errors during linking are ?
+> - the linker cannot resolve a symbol required by one of the objects being linked
+>   - "undefined reference to ... "
+> - the linker cannot decide how a required symbol should be resolved, as the set of objects being linked exposes this symbol multiple times 
+>   - "multiple definition of ... first defined here ..." 
 
 The result of the linking step is a *dynamically* or *statically* linked application.
 For example, 
@@ -319,6 +541,16 @@ cmake -L .. # create Makefiles and list variables
 make VERBOSE=1 # use CMake generated Unix Makefiles
 ```
 > Is a CMake configuration automatically portable?
+> - no, you can sprinkle non-portable thinks easily
+> - CMake is constantly improving to support convenient solutions for common requirements
+> - Special treatment might be necessary to "even out" incompatible settings between compilers
+>```
+>   if (MSVC) # for Microsoft compiler
+>       add_compile_options(/W4 /WX)
+>   else() # for all other compilers
+>       add_compile_options(-Wall -Wextra -pedantic -Werror)
+>   endif()
+>```
 
 ## Coding Style
 Formatting source code is only important if humans have to look at the code
@@ -326,6 +558,13 @@ Formatting source code is only important if humans have to look at the code
 As many flavors of coding-styles and formatting exist, bigger projects restrict this freedom and settle with a set of rules for formatting and naming. 
 
 > Examples for rules defined through a coding style?
+> - placement of spaces, example: `double *ptr;` vs `double* prt;`
+> - naming conventions
+> - maximum width of a line
+> - linebreak rules w.r.t. "language tokens" e.g., `{`
+> - indents, indent widths (different rules for different contexts)
+> - placement/alignment of comments
+
 
 ### Formatting
 To avoid manual code-rearrangement and to guarantee consistent style, formatting tools are used. A very prominent tool is *clang-format*. 
@@ -341,6 +580,8 @@ where the dominant adoptions are white space/newline arrangements.
 Note that this is a lightweight standalone tool, e.g., it does not try to compile the code.
 
 > Could clang-format also be used for refactoring tasks?
+> - refactoring C++ projects is a topic on its own and at least requires "full overview" of how a project and all involved resources are compiled 
+> - clang-format is agnostic to the full project and performs formatting (no refactoring) on a single file basis.
 
 ### Linting
 To ensure a consistent coding style going further than bare-formatting, a 'linter' can be used.
@@ -375,6 +616,8 @@ if the check 'cppcoreguidelines-no-malloc' is enabled.
 Both tools clang-format and clang-tidy are integrated into the language server *clangd* which is available for many IDEs via a plugin.
 
 > Examples for problems not detectable by the linter?
+> - in general, a linter has the same limitations as a compiler (see above)
+> - although, the checks of a linter can help to prevent error-prone situations which in turn might help to prevent logical errors
 
 ## Sanitizers
 Many error-prone situations can be detected using linting. 
@@ -383,6 +626,8 @@ To capture such unwanted situations, clang (and gcc) offer *sanitizers* which ca
 Enabling sanitizers typically leads to a slowdown and increased memory consumption.
 
 > Major difference between compile time (linting) and run time (sanitizers) checks?
+> - sanitizer checks for a *specific* execution (input parameters)
+> - e.g., when detecting no memory leaks, it is still possible that memory leaks occur for different input parameters 
 
 
 ### Memory errors
@@ -478,6 +723,8 @@ instructions from two different threads
 *Race conditions* cannot be detected.
 
 > What is a race condition?
+> - assuming the implementation of an interface that, when used from a single thread exclusively, cannot lead to a program state which violates the logic of the interface and involved objects. 
+> - A race condition is observed if a program state which does violate the logic of the interface is possible if more than one thread concurrently accesses the interface.
 
 For example in
 ```pmans

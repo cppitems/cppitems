@@ -7,6 +7,6 @@ int main() {
       *grid_at(&grid, x, y) = x + y;
     }
   }
-//   grid_free(&grid);
+//   grid_free(&grid); // runtime memory leak
   return 0;
 }
