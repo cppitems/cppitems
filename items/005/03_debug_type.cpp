@@ -7,9 +7,10 @@ int main() {
     void foo() {}
   };
   const A obj{5};
-  const int &&a = 5;
+  auto a = 5u; // deduced to what? (unsiged long)
   const double b = a + 5.0;
-//   DebugType<decltype(a)> type_a;
+  auto lambda = [](){return 5;};
+  DebugType<decltype(lambda)> type_a;
 //   DebugType<decltype(a + 5.0)> type_tmp;
 //   DebugType<decltype(&A::foo)> type_A_foo_ptr;  
 //   DebugType<decltype(A().a)> type_A_a;  

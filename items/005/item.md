@@ -2,7 +2,7 @@
 # Overview: types and expressions
 
 > What is the purpose of today's lecture?
-> - ...
+> - develop some experience how to look at C++ code: w.r.t Types, Expressions
 
 Looking at a certain portion of C++ source code it is not immediately apparent what the consequences are exactly:
   
@@ -13,18 +13,28 @@ Looking at a certain portion of C++ source code it is not immediately apparent w
   auto c = a + b + b++;                 // (3)
 ```
 > What is the state of `b` after (1)?
+> - initialized with `1` (int) but we know nothing more 
 
 > How are `a` and `b` related after (2)? 
+> - `a` points to `b`? no:`a` is not a reference type (but it might be the case that member of `b` are related to members of `a`)
+> - depends on assingment operator?: yes
+> - shallow copy? maybe: depends on the implementation of the copy-constructor
 
 > Does (3) have side effects on `a`? What about `b`?
-
+> - side effects on `a`? no, beside if (2) keeps a relation, e.g., between members
+> - side effects on `b`? yes: `b++`
+> - other effects? maybe: implementation of `operator+(...)` between `Widgets` is unknown
 
 To answer these questions, it is required to know details about the involved *types* in an *expression* and how expressions are evaluated. If `using Type = int;` the consequences of the above statements/expressions are intuitively clear. 
 But what about this:
 ```pmans
   using Type = int;
-  auto d = 2 + 2 * Type{1} / Type(2.0); // (4) 
+  auto d = 2 + 2 * Type{1} / Type(2.0); // (4)  any difference between {} and ()?
+  auto d = 2 + 2 * Type{1} / Type(2.0); //
+  Type{2.0} // more strict w.r.t. conversions, i.e., no truncating implicit convertions
+  Type(2.0) // allows implicit conversions, i.e., also truncations
   auto e = 2.5 + Type{1} / Type{2} * 5; // (5)
+  auto e = DOUBLE + INT; // (5) default is resulting in non-truncating type
 ```
 To exactly describe the effects of (4) and (5) additional knowledge about the `auto` *type deduction* mechanism, involved operators/precedence, and *implicit conversions* of *fundamental types* is required:
 
@@ -41,7 +51,8 @@ clang-check -extra-arg=-std=c++17 -ast-dump --ast-dump-filter=main 01_fundamenta
 ```
 
 > Some more examples for common fundamental types / common user-defined types?
-
+> - `double`, `float`, `long`, `int`, `char`, `bool`
+> - `std::numeric_limits`, `std::vector`, `std::set`, `std::iterator`, `std::map`, `std::shared_ptr`, `std::enable_if`, `std::move`, `std::thread`
 
 ## Expressions
 An *expression* describes a computation by prescribing a sequence of operations to be performed on a set of operands. For the fundamental type `int`, some expressions where the effect of *operators* can be guessed are:
@@ -50,8 +61,8 @@ An *expression* describes a computation by prescribing a sequence of operations 
     Type a{1};
     Type b{2};
     Type c{3};
-    a /*b1*/ = b /*b1*/ + c /*b1*/ + c;                              // (1)
-    a /*b1*/ = b /*b1*/ + c /*b1*/ * c;                              // (2)
+    a /*b1*/ = b /*b1*/ + c /*b1*/ + c;                             // (1)
+    a /*b1*/ = b /*b1*/ + c /*b1*/ * c;                             // (2)
     a /*b1*/ = 2 /*b1*/ + c /*b1*/ + 1 /*b1*/ / 2;                         // (3)
     a /*b1*/ = 2.5 /*b1*/ + c /*b1*/ + a;                           // (4)
     a /*b1*/ + b /*b1*/ + c;                                 // (5)
@@ -61,21 +72,43 @@ Transforming (2) into equivalent forms which make this visible looks like this:
 ```pmans
     a = (b + (c * c));                             // (2) equivalent
     a./*f9*/ operator=/*b1*/ (b./*f9*/ operator+/*b1*/ (c./*f9*/ operator*/*b1*/ (c/*b3*/ )));  // (2) conceptually equivalent
+    a /*b1*/ = b /*b1*/ + c /*b1*/ + c;                              // (2)
+    a.operator=(ONE) // binary operator (but only one argument)
+    a.operator=(c.operator*(c)) // 
+    a.operator=(b.operator+(c.operator*(c))) // 
 ```
 
 > Examples for non-binary operators?
+> - NOT operator: `!(expr)` -> unary
+> - in-place increment and  decrement operators: `++` `--` -> unary
+> - bitshift operations: `a << 2;` -> binary
+> - "inline if-else": `condition ? a : b` -> ternary
 
 
 Function calls can also  be part of an expression (i.e., the returned value):
 ```pmans
     auto /*f*/ lambda /*x*/ = [&a](Type b) { return /*b2*/ --a /*b1*/ - b; };  // (6)
-    a /*b1*/ = /*f*/ lambda /*x*/(b) /*b1*/ + b /*b1*/ - /*f*/ lambda /*x*/(b);                  // (7)
+    // what does the lambda above do for us: 
+    // allows to define an inline "function object" with "captures" 
+    a /*b1*/ = /*f*/ lambda /*x*/(b) /*b1*/ + b /*b1*/ - /*f*/ lambda /*x*/(c);                   // (7) associativity, precedence 
 ```
 The *order of evaluation* of sub-expressions is not defined; but the operator precedence defines which operands are associated with each operator. 
 
 > Which of the two `lambda` evaluations takes place first ?
+>- the order of evaluation is *not* defined in the standard
 
 > What happens if multiple operators of equal precedence are 'chained'?
+ > - they are evaluated accoring to the associativity of the operator 
+>```pmans
+>a + b + c; // 'chained' operator+; operator+ is left-to-right associative
+>((a + b) + c); // equivalent with explicit parentheses
+>```
+> - for (7) above explicitly:
+> ```pmans
+> auto tmp = lambda(b) + b; // 1) leftmost subexpression due to left-to-right associativity
+> a = tmp - lambda(c);      // 2) combining `tmp` from 1) and third operand
+> ```
+
 
 To represent intermediate results of sub-expressions, *temporary objects* might be created during execution of an expression. The lifetime of temporary objects ends with the *full-expression*: after evaluation of the expression, all temporary objects are destroyed.
 
@@ -93,8 +126,21 @@ This type controls how an entity can be "used" and what it exactly means when it
 *All* types are determined at compile time, even if they are not explicitly visible in the source (using deduction rules).
 
 > What are a typical compile time errors w.r.t. types?  
+> - conversions
+> - access to non-existing "things"
+> - trying to modify objects of `const` type
+> - nearly all error messages are related to types
 
 > Which run time errors are possible in dynamically typed languages, e.g., JavaScript or Python?
+> - JavaScript defaults to `undefined` if a method or member does not exist and run time checking might look like:
+>```pmans
+>// JavaScript
+>function func(object) {
+>  if(object.method === undefined ) { return object.method(5); }
+>  else { throw "error"; }
+>}
+>```
+> - to provide type safety for JavaScript or Python, compile time type checking frameworks (e.g., mypy or TypeScript) are available, releasing the burden to do checks like the one above
 
 ### Debugging types
 
@@ -155,6 +201,13 @@ int main() {                                            // (2)
     int i;
   };                                                          // (9)
   auto /*b*/ lambda /*x*/ = [=](Widget w) { return w.i + a + b; };       // (10)
+  // lambda adv 1: cannot define inline function here
+  // lambda adv 2: lambda can "capture the local surrounding"
+  // what does auto do for us here?
+  //struct Lambda {
+  //    // implement all the things so it behaves as "expected"
+  //};
+  //Lambda lambda(...);
   auto /*b*/ res /*x*/ = lambda(Widget{2});                               // (11)
   auto /*b7*/ lambda2 = [&]() { return std::make_tuple(a, b, c); }; // (12)
   auto [/*b*/ one /*x*/, /*b3*/ two, /*b5*/ three] = lambda2();                        // (13)
@@ -165,6 +218,11 @@ int main() {                                            // (2)
 ```
 
 To reveal the actual types we can use the method introduced above. 
+
+> Side topic: why are `lambda` functions actually attractive?
+> - what are the actual alternatives: 
+>   - 1) free standing functions -> cannot be defined "inline" and cannot "capture"
+>   - 2) classes with user defined constructors and overloaded `operator=(...)` -> cannot be defined "inline"
 
 ### Types produced by "high level" language features
 
@@ -187,6 +245,8 @@ clang-check -extra-arg=-std=c++17 -ast-dump --ast-dump-filter=main 04_more_types
 
 For example the lambda function (10) is reported as an inline class `__lambda_18_17` and an immediate instantiation, which conceptually looks like 
 ```pmans
+// surrounding
+auto lambda = [=](Widget w) { return w.i + a + b; };       // (10) this is unfolded
 class /*f*/ __lambda_18_17 /*x*/{
 public:
   /*f*/ __lambda_18_17 /*x*/(int a, const double b) : a{a}, b{b} {} // constructor
@@ -237,8 +297,38 @@ Let's now look at the example from above again and change `Type` from `int` to a
   }
 ```
 > Which expressions would not compile? Which sub-expressions exactly?
+<!-- > - (1)-(7) do not compile due to missing definitions for binary operators and missing conversion rules between `int` and `Widget`, see inline comments above -->
+
 
 > How to make `Widget` "compatible" with the expressions above? 
+<!-- > - add converting constructor to `Widget`
+>```pmans
+>struct Widget {
+>  int i;
+>  Widget(int i) : i{i} {} // implicitly converts between `int` and `Widget` ...
+>  Widget() : i{} {}; // ... this requires to explicitly define the default constructor
+>```
+-->
+<!--
+> - add operator overloads for `Widget` as member functions
+>```pmans
+>struct Widget {
+>  int i;
+>  auto operator/*b1*/ +(const Widget &other) const { return Widget{i /*b1*/ + other.i}; }
+>  auto operator/*b1*/ -(const Widget &other) const { return Widget{i /*b1*/ - other.i}; }
+>  auto operator/*b1*/ *(const Widget &other) const { return Widget{i /*b1*/ * other.i}; }
+>  ...
+>}
+>```
+-->
+<!--
+> - add free function (template) to implement `operator+(int, Widget)` and `operator+(double, Widget)`
+>```pmans
+>template <typename T> auto operator+(const T &maywork, const Widget &widget) {
+>  return T{maywork + widget.i}; 
+>};
+>```
+-->
 
 ```bash
 # compile
@@ -248,15 +338,55 @@ clang++ -std=c++17 -ferror-limit=1 05_expressions_user.cpp
 # Summary
 
 - Operator precedence defines how a source code representation of an expression is mapped to nested operator calls and what the respective operands are.
-
+<!-- 
+```pmans
+    Type a,b,c;
+    // original source code
+    c = a * 5 + b + 1 / 2;   
+    // precedence indicated by parentheses      
+    c = ((a * 5) + b) + (1 / 2);    
+    // explicit binary operator calls
+    c.operator=(a.operator*(5).operator+(b).operator+(1 / 2)); 
+``` 
+-->
 - Temporary objects which represent evaluations of sub-expressions are destroyed after the full-expression is evaluated.
-
+<!--
+```pmans
+    // intermediate results destroyed after this line
+    auto res = func1(...) + func2(...); 
+    // temporary object `Type{}` released after this line
+    std::cout << Type{} << std::endl; 
+```
+-->
 - Most operators are defined for fundamental types; additionally implicit conversions exist between integral and floating point types. 
-
+<!-- 
+```pmans
+    int a = 2 + double{2} / 2;
+    // explicitly call conversion
+    int a = static_cast<int>(2 + (double{2} / 2)); 
+```
+-->
 - For user-defined types, there is no default behavior in many semantic embeddings. Defaults for construction(1)(2)/assignment(3)/destruction(4) are implicitly defined if they do not interfere with user-defined details of the class.
-
+<!--
+```pmans
+    struct Widget {
+      int i;
+    };
+    {
+      Widget a, b;      // (1) default constructors
+      Widget c = b;     // (2) copy constructor    
+      a = b;            // (3) copy assignment
+      a = b + c;        // operator+ not defined for `Widget`
+    }                   // (4)destructors called for a,b,c
+```
+-->
 - To inspect the exact types deduced by the compiler, an access to a non-existing member/type can be used to trigger an error revealing the type of an object.
-
+<!--
+```pmans
+    template <typename T> struct DebugType { using T::notexisting;};
+    // usage: DebugType<decltype(/*f*/ object /*x*/)> error;
+```
+-->
 
 - Some "high level" language features (we saw lambda function objects and structural binding) can be transformed to code using "lower level" language features.
 
