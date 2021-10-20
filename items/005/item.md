@@ -297,38 +297,8 @@ Let's now look at the example from above again and change `Type` from `int` to a
   }
 ```
 > Which expressions would not compile? Which sub-expressions exactly?
-<!-- > - (1)-(7) do not compile due to missing definitions for binary operators and missing conversion rules between `int` and `Widget`, see inline comments above -->
-
 
 > How to make `Widget` "compatible" with the expressions above? 
-<!-- > - add converting constructor to `Widget`
->```pmans
->struct Widget {
->  int i;
->  Widget(int i) : i{i} {} // implicitly converts between `int` and `Widget` ...
->  Widget() : i{} {}; // ... this requires to explicitly define the default constructor
->```
--->
-<!--
-> - add operator overloads for `Widget` as member functions
->```pmans
->struct Widget {
->  int i;
->  auto operator/*b1*/ +(const Widget &other) const { return Widget{i /*b1*/ + other.i}; }
->  auto operator/*b1*/ -(const Widget &other) const { return Widget{i /*b1*/ - other.i}; }
->  auto operator/*b1*/ *(const Widget &other) const { return Widget{i /*b1*/ * other.i}; }
->  ...
->}
->```
--->
-<!--
-> - add free function (template) to implement `operator+(int, Widget)` and `operator+(double, Widget)`
->```pmans
->template <typename T> auto operator+(const T &maywork, const Widget &widget) {
->  return T{maywork + widget.i}; 
->};
->```
--->
 
 ```bash
 # compile
@@ -338,55 +308,15 @@ clang++ -std=c++17 -ferror-limit=1 05_expressions_user.cpp
 # Summary
 
 - Operator precedence defines how a source code representation of an expression is mapped to nested operator calls and what the respective operands are.
-<!-- 
-```pmans
-    Type a,b,c;
-    // original source code
-    c = a * 5 + b + 1 / 2;   
-    // precedence indicated by parentheses      
-    c = ((a * 5) + b) + (1 / 2);    
-    // explicit binary operator calls
-    c.operator=(a.operator*(5).operator+(b).operator+(1 / 2)); 
-``` 
--->
+
 - Temporary objects which represent evaluations of sub-expressions are destroyed after the full-expression is evaluated.
-<!--
-```pmans
-    // intermediate results destroyed after this line
-    auto res = func1(...) + func2(...); 
-    // temporary object `Type{}` released after this line
-    std::cout << Type{} << std::endl; 
-```
--->
+
 - Most operators are defined for fundamental types; additionally implicit conversions exist between integral and floating point types. 
-<!-- 
-```pmans
-    int a = 2 + double{2} / 2;
-    // explicitly call conversion
-    int a = static_cast<int>(2 + (double{2} / 2)); 
-```
--->
+
 - For user-defined types, there is no default behavior in many semantic embeddings. Defaults for construction(1)(2)/assignment(3)/destruction(4) are implicitly defined if they do not interfere with user-defined details of the class.
-<!--
-```pmans
-    struct Widget {
-      int i;
-    };
-    {
-      Widget a, b;      // (1) default constructors
-      Widget c = b;     // (2) copy constructor    
-      a = b;            // (3) copy assignment
-      a = b + c;        // operator+ not defined for `Widget`
-    }                   // (4)destructors called for a,b,c
-```
--->
+
 - To inspect the exact types deduced by the compiler, an access to a non-existing member/type can be used to trigger an error revealing the type of an object.
-<!--
-```pmans
-    template <typename T> struct DebugType { using T::notexisting;};
-    // usage: DebugType<decltype(/*f*/ object /*x*/)> error;
-```
--->
+
 
 - Some "high level" language features (we saw lambda function objects and structural binding) can be transformed to code using "lower level" language features.
 
