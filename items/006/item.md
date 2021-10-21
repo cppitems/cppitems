@@ -27,7 +27,7 @@ Widget gw = {2}; // global widget
   return_tmp() = (Widget){5};// (4) ERROR, 'return_tmp()' is rvalue
   return_ptr()->i = 5;       // (5) 'return_ptr()->i' is lvalue
 ```
-Let's look at a similar same code snippet again in C++ when also using references:
+Let's look at the same code snippet again in C++ when also using references:
 ```pmans
 /* compile: clang++ -std=c++17 */
 struct Widget { int i; };
