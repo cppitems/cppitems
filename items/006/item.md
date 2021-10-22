@@ -83,7 +83,7 @@ References can bind to expressions providing an alias to the object determined b
 
 An overview is provided in the image below:
 
-![value_categories.png](./value_categories.png)
+![value_categories](https://raw.githubusercontent.com/cppitems/cppitems/master/items/006/value_categories.svg)
 ```pmans
 // prvalue "pure rvalue"
 int i = 5; // '5' is a prvalue
