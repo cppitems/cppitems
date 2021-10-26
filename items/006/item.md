@@ -40,7 +40,7 @@ Widget gw = {2}; // global widget
   return_ptr()->i = 5;       // (5) 'return_ptr()->i' is lvalue
   gw.i = 5; // equivalent effect of (5)
 ```
-Let's look at a similar same code snippet again in C++ when also using references:
+Let's look at the same code snippet again in C++ when also using references:
 ```pmans
 /* compile: clang++ -std=c++17 */
 struct Widget { int i; int j };
