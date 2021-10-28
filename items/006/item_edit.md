@@ -314,7 +314,7 @@ If a lvalue reference is declared `const` it can also be initialized with `const
 
 > When is a lvalue reference to a `const` object useful?
 <!-- > - its useful as it can bind to everything (see above) --->
-<!-- > - ... although access is the always `const`, even if the object it was bound to was non-const. -->
+<!-- > - ... although access is always `const`, even if the object it was bound to was non-const. -->
 
 ## Non-const rvalue references
 Non-const rvalue references can bind to non-const rvalues (xvalues and temporaries).
@@ -439,13 +439,13 @@ func(std::forward<decltype(fref2)>(fref2)); // (2) call with rvalue reference
 <!-- > - you would have to work with overloading (this is very verbose for multiple arguments)
 ```pmans
 func(const T arg1) {
-  nested_func(arg1); // see 'original' val cat & constness
+  nested_func1(arg1); 
 }
 func(T arg1) {
-  nested_func(arg1); // see 'original' val cat & constness
+  nested_func2(arg1); 
 }
 func(const T& arg1) {
-  nested_func(arg1); // see 'original' val cat & constness
+  nested_func3(arg1); 
 }
 ```
 -->

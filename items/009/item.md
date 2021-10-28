@@ -1,4 +1,4 @@
-9 // item status
+1 // item status
 # Exercise EX1.2
 
 The exercise is available as a git repository at:
