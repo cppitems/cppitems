@@ -8,19 +8,28 @@ Let's pick a simple user-defined type and consider the expected behavior (which 
     double j;
     std::vector<double> d;
   };
-  Widget a{};              // (1a) def-ctor
-  Widget b = Widget{};     // (1b)
+  Widget a{};              // (1a) def-ctor: where is this constructor implemented?
+  Widget b = Widget{};     // (1b) def-ctor: only default ctor (not construct and move/copy)
+  // construction/init syntax:
+  // int i{}; // C++ way
+  // int i = {}; // C origin/heritage
   Widget c(a);             // (2a) copy-ctor
   Widget d = a;            // (2b)
   Widget e(std::move(a));  // (3a) move-ctor
   Widget f = std::move(a); // (3b)
   a = b;                   // (4) copy-assign
-  a = std::move(b);        // (5) move-assign
+  a.operator=(T&);         // ... resolves to copy (as b is lvalue)
+  a = std::move(b);        // (5) move-assign:
+  a.operator=(T&&);        // ... resolved to move (as rhs is rvalue) 
 } // (6) dtors
 ```
 > Are these special member function (SMF) always implicitly available?
+> - if you provide user-defined versions: some are disables, exact rules are involved
 
 > Can they be "turned on or off" explicitly?
+> - `... = delete;` "turns them off"
+> - `... = default;` does not turn them on, but asks for the default (which can actually might be `deleted`)
+
 
 Further common semantic embeddings are function calls:
 ```pmans
@@ -28,15 +37,17 @@ Further common semantic embeddings are function calls:
   void pass_lref(Widget &w) {}; 
   void pass_rref(Widget &&w) {};  
   Widget /*f1*/ a{};
-  pass_byvalue(/*f1*/ a);                     // (6a) 
-  pass_byvalue(std::move(/*f1*/ a));          // (6b) 
-  pass_lref(/*f1*/ a);                        // (7) 
-  pass_rref(std::move(/*f1*/ a));             // (8) 
-  pass_rref(Widget{});                 // (9)   
+  pass_byvalue(/*f1*/ a);                     // (6a) copy constructor (passing lvalue to by by-value argument)
+  pass_byvalue(std::move(/*f1*/ a));          // (6b) move contructor (passing rvalue to by-value argument)
+  pass_lref(/*f1*/ a);                        // (7) no SMF is involved (simply binding lvalue to lvalue-ref argument)
+  pass_rref(std::move(/*f1*/ a));             // (8) no SMF is involved (simply binding an rvalue to an rvalue-ref argumemt)
+  pass_rref(Widget{});                 // (9) no SMF is involved (binding + lifetime extension of temporary)
+                                       // ... precise: constructor is used to create temporary
 ```
 > Which of the special member functions are involved in (6)-(9)?
+> - see inline comments above
 
-Using the clang AST will list this 6 special member functions for `Widget` which will look similar to this:
+Using the clang AST will list exactly this 6 special member functions for `Widget` which will look similar to this:
 ```pmans
 CXXRecordDecl ... struct Widget definition
 |-DefinitionData aggregate
@@ -53,8 +64,10 @@ As we have seen above, which constructor is called depends on the semantic embed
 
 ### Default constructor
 > Describe the effect of a default constructor:
+> - construct object without any arguments provided
 
 > Which are common situations where it is invoked?
+> - defining local variables, .e.g., `Widget a;`
 
 
 The implicitly available default constructor of `Widget` initializes all members using the respective default initialization in order of declaration and looks like this:
@@ -64,6 +77,7 @@ The implicitly available default constructor of `Widget` initializes all members
     double j;
     std::vector<double> d;
     /*b*/ Widget() /*x*/  /* compile: default initialize members */ {} // (1)
+    // this means: fundamental types: not initialization -> indeterminate state
   };
 ```
 Note: *default initialization* means calling the constructor for classes and doing nothing for non-array built-in types.
@@ -79,6 +93,7 @@ It is implicitly available if *no other* user-defined constructors are present. 
   };
 ```
 > Why does this rule make sense?
+> - the presence of a custom constructor (with arguments) indicates that a default construction might not make sense (or is even dangerous) as it might lead to an object in an undesired state.
 
 Further, it is *not* implicitly available if `const` or reference members are present (or if members have no accessible default construction mechanism). Examples:
 ```pmans
@@ -98,6 +113,9 @@ Further, it is *not* implicitly available if `const` or reference members are pr
   };
 ```
 > Does this rule make sense?
+> - yes, members of reference-type cannot be default initialized
+>- yes, unreasonable to default initialize const members
+
 
 Default member initializers lift this last rule:
 ```pmans
@@ -113,13 +131,38 @@ Default member initializers lift this last rule:
 ``` 
 
 > Why is it error-prone to not follow the declaration order for the *initializer list*?
+>```pmans
+>  struct Widget {
+>    int i;
+>    double j;
+>    std::vector<double> d;
+>    Widget() : j(5), i(j), d()  { // 'j' put before 'i'
+>    } 
+>  };
+>```
+> - because the order of initializations always happens in the order of declaration (and not in the order given in an user-provided initializer list).  
+
 
 > What happens (for a user-defined constructor) when a member is not initialized using the *initializer list*?
+>```pmans
+>  struct Widget {
+>    int i; 
+>    double j;
+>    std::vector<double> d;
+>    Widget() /* compile: no initializer list */ {
+>    } 
+>  };
+>```
+> - member will be default initialized: for classes this means the default construtor is used; for built-in types (e.g., `i` and `j`) nothing is done
+
 
 ### Copy constructor
 > Describe the effect of a copy constructor. 
+> - construct an object using an lvalue reference to another object of the same type
 
 > Which are common situations where it is invoked?
+> - invoking functions with non-reference arguments
+
 
 A copy constructor is implicitly available if no user-defined copy constructors are present. For `Widget` it looks like this:
 ```pmans
@@ -139,19 +182,36 @@ If all members support a copy constructor from a `const` reference, the argument
   };
 ```
 > Why is `const` preferred by the rules? 
+>```pmans
+>   const Widget cw{};
+>   Widget a(cw); // does this work with Widget(Widget &w) ? -> no, cannot bind const to non-const ref
+>   Widget a(Widget{}); // does this work with Widget(Widget &w) ? -> no, cannot bind rvalue to lvalue ref
+>```
+> - cases where an rvalue or a const object are passed do not work without `const`
+
 
 Further, it is *not* implicitly available if other user-defined special member functions (beside constructors) are present.
 
 > Informally, when is a copy constructor not available implicitly?
+> - if one or more of the members do not support beeing copied
+> - if a custom implementation for other SMFs are present (beside regular constructors)
+
 
 ### Move constructor
 > Describe the effect of a move constructor.
+> - construct an object using an rvalue reference to another object of the same type
+> - potentially using/moving resource of the other object
 
 > Which are common situations where it is invoked?
+> - whenever an rvalue is passed in a "construction situation"
 
 The move constructor is implicitly available if no other user-defined special member functions are present (beside user-defined constructors) and all members are "allowed to be moved".
 
 > Why does this rule make sense?
+> - destructor is present: indicating special treatment which has to be considered also during "moving"
+> - copy constructor is present: possible special treatment when copying will likely also apply for move-construction
+> - copy/move assignment present: again, indicating that special treatment is required also for move-construction
+
 
 For `Widget` the implicit move constructor looks like this:
 ```pmans
@@ -202,6 +262,10 @@ Assignment is implicitly available in form of the assignment `operator=`:
 ```
 > Are there any special rules for the assignment `operator=` compared to any other non-static "ordinary" member-function? 
 How do the above lines look like when using the "member-function like" syntax?
+<!--
+> - no, `operator=` overloads behave like "normal" members functions (but might be implicitly available a SMF)
+> - above lines could be also written as `a.operator=(b);` and `a.operator=(std::move(b));`
+-->
 
 The signature and rules for the implicit availability of the copy (4) and move (5) assignment operators are very similar to the rules of their construction counterparts.
 What differs most is that no initializer list is available and a reference to a `Widget` is returned:
@@ -220,6 +284,10 @@ Overload resolution works in the same way as for the move and copy constructors:
 
 ### Copy assignment
 > Describe the effect of a copy assignment (operator). 
+> - a copy assignment "assigns" an object to an already existing object of the same type, e.g. `a = b;`.
+> - the detailed effect of the assignment depends on the implementation of the assignment operator, but commonly is is expected that `b` is not modified by the assignment and `a` will be in the same state as `b` after the assignment.
+
+
 
 A copy assignment operator is implicitly available if *no* user-defined copy constructors are present and all member are copy-assignable. For `Widget` it looks like this:
 ```pmans
@@ -248,9 +316,24 @@ Further, it is not available in the presence of `const` or reference type member
   };
 ``` 
 > Do this rules for implicit availability make sense?
+> - yes, if other SMFs are available indicates that a copy assignment might need "special care"
+> - yes, if members do not support copy assignment, the implicit form of the copy assignment is not possible.
+
 
 ### Move assignment
 > Describe the effect of a move assignment (operator). 
+> - a move assignment "assigns" an object to an already existing object of the same type, e.g. `a = std::move(b);`
+> - the detailed effect of the move assignment depends on the implementation of the operator
+> - commonly is is expected that `a` represents the state of `b` after the assignment
+> - the state of `b` after the assignment is required to be valid and destructible, nothing more, nothing less
+>```pmans
+>{
+>  ... a,b; // assume a and b each own resources
+>  a = std::move(b); // is dtor of b called after this line? -> no 
+>  // does b still own resources here? -> maybe
+>} // dtors: here b is deconstructed and its resources (which it still might own) are freed
+>```
+
 
 A move assignment operator is implicitly available if *no* other special member functions are present (beside constructors).  For `Widget` it looks like this:
 ```pmans
@@ -333,10 +416,14 @@ On the other hand, it *is* possible to mark a SMF as *deleted* and therefore ove
 
 ## Destruction
 > Describe the effect of a destructor. 
+> - allows to implement custom actions required to "properly" tear-down an object; e.g., releasing allocated resources
 
 The destruction mechanism for a user-defined type is triggered at the end of the lifetime of an object.
 
 > Example for when the lifetime of an object ends?
+> - local variable goes out of scope, e.g., a function body ends
+> - execution reaches the end of program: static variables reach end of lifetime
+> - a class object is deconstructed: lifetime of non-static members ends
 
 If no user-declared destructor is present, an implicitly declared constructor (with an empty body) is available. For `Widget` it looks like this:
 ```pmans
@@ -373,8 +460,27 @@ struct WidgetOwns {
 }
 ```
 > Which SMF are additionally implicitly available for the `Widget` above? 
+> - the user-defined destructor (6) disables the implicit availability of "move related" SMFs (as these were introduced in C++11)
+> - the user-defined constructor (1) disables the availability of the default constructor
+> - "copy related" SMFs are implicitly available (deprecated since C++11)
+> - the member `data` of type pointer-to-`double` is not considered as a reference
 
 > Describe problems resulting from the implicit availablity of "copy related SMFs":
+
+> - a copy constructor is implicitly available and will copy the value of `data`: the newly constructed object points to the same memory location
+>```pmans
+>Widget w1(10);
+>Widget w2 = w1; //  will copy pointer value
+>// what happens at destruction? 
+>```
+> - a copy assignment is implicitly available and leads will assign the value of `data`: after assignment both objects point to the same memory resource; additionally the original value of `data` is overwritten 
+>```pmans
+>Widget w1(10);
+>Widget w2(10);
+>w2 = w1; //  will copy pointer value; value of 'w2.data' is lost 
+>// what happens at destruction?
+>// what else?
+>```
 
 ## Links
 

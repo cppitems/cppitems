@@ -81,7 +81,7 @@ References can bind to expressions providing an alias to the object determined b
 - rvalue references (`Widget &&`) can bind to xvalue and prvalue expression, i.e., expressions determining a movable object).
 - lvalue references (`Widget &`) can bind to lvalue expressions, i.e., expression which determine a non-temporary object which is non-movable.
 
-An overview is provided in the image below:
+An overview is provided in the image below: 
 
 ![value_categories](https://raw.githubusercontent.com/cppitems/cppitems/master/items/006/value_categories.svg)
 ```pmans
@@ -232,7 +232,7 @@ A local variable `var` (2) is "tagged" as movable using `std::move(...)` (3) and
 > - handle to a locatable and movable object (e.g., temporary with extended lifetime, or explicitly "tagged" by the programmer using `std::move(...)` ) 
 > - *unnamed* rvalue reference 
 > - typically is bound to a rvalue reference variable 
-> - caveat: a named variable of type rvalue reference is *not* an xvalue, but an lvalue 
+> - caveat: a named variable of type rvalue reference is *not* an xvalue, but an lvalue
 
 
 ### Mixed value categories
@@ -264,21 +264,24 @@ Widget &&rref = /*b*/ std::move(var) /*x*/;  // (2) xvalue
 
 After looking closely on different categories of expression we now look at references (which can bind to the objects determined by expressions) more closely.
 
-___
-next lecture proceeds here
-___
 ## Non-const lvalue references
 Non-const lvalue references can only be bound (initialized) using lvalue expressions determining non-const objects.
 ```pmans
-  Widget var{};
+  struct Widget{
+      int i;
+      int j;
+  }
+  Widget var{1,2}; // what does {} do? this is "list initialization"
+  Widget var(1,2); // not available, would be user defined
   Widget var2{};
   const Widget cvar{};
-  Widget &/*b4*/ lref = var;            // (1) 
-  Widget &/*b4*/ lref = cvar;           // (2) 
-  Widget &/*b4*/ lref = Widget{};       // (3) 
-  Widget &/*b4*/ lref = std::move(var); // (4) 
+  Widget &/*b4*/ lref = var;            // (1) yes: lvalue ref on lhs, lvalue on rhs
+  Widget &/*b4*/ lref = cvar;           // (2) no: cannot bind const to non-const ref  
+  Widget &/*b4*/ lref = Widget();       // (3)prvalue (rvalue) cannot bind to lvalue-ref
+  Widget &/*b4*/ lref = std::move(var); // (4) xvalue (rvalue), cannot bind to lvalue-ref
 ```
 > Which of the lines above do not compile? What are the error messages?
+> - (2)-(4), see inline comments above
 
 The situation for function arguments is identical:
 ```pmans
@@ -288,30 +291,34 @@ The situation for function arguments is identical:
   const Widget cvar{};
 
   accept_lref(var);            // (1) 
-  accept_lref(cvar);           // (2) 
+  accept_lref(cvar);           // (2)  
   accept_lref(Widget{});       // (3) 
   accept_lref(std::move(var)); // (4) 
 ```
 > Is anything different to the above examples which bind to variables instead of function argument? 
-
+> - no
 
 ## Const lvalue references
 If a lvalue reference is declared `const` it can also be initialized with `const` lvalues and rvalues (prvalues and xvalues) extending their lifetime.
 ```pmans
   void binds_clref(/*f5*/ const Widget & /*b5*/ clref) {};
+  void binds_clref(/*f5*/ Widget && /*b5*/ clref) {};
   ...
   Widget var{};
   const Widget cvar{};
 
-  binds_clref(var);            // (1) 
-  binds_clref(cvar);           // (2) 
-  binds_clref(Widget{});       // (3) 
-  binds_clref(std::move(var)); // (4)
+  binds_clref(var);            // (1) works, but only const access is allowed
+  binds_clref(cvar);           // (2) works now
+  binds_clref(Widget{});       // (3) works: lifetime extension of temporary (prvalue)
+  binds_clref(std::move(var)); // (4) works, rvalues can bind to const lvalue references
+// here 'var' is in valid but in unknown state and destructible
 ```
 > Which of the lines compiles now? Which lifetimes are extended?
+> - all lines compile, see inline comments above
 
 > When is a lvalue reference to a `const` object useful?
-
+> - binds to "everything": lvalue and rvalues
+> - disadvantage: access is always const only: cannot move or modify object through the alis
 
 ## Non-const rvalue references
 Non-const rvalue references can bind to non-const rvalues (xvalues and temporaries).
@@ -319,15 +326,19 @@ Non-const rvalue references can bind to non-const rvalues (xvalues and temporari
 ```pmans
   Widget var{};
   const Widget cvar{};
-  Widget && /*b4*/ rref = var;            // (1) 
-  Widget && /*b4*/ rref = cvar;           // (2) 
-  Widget && /*b4*/ rref = Widget{};       // (3) 
-  Widget && /*b4*/ rref = std::move(var); // (4) 
+  Widget && /*b4*/ rref = var;            // (1) rhs: lvalue
+                                   // -> cannot bind lvalue to rvalue-ref
+  Widget && /*b4*/ rref = cvar;           // (2) same as (1)
+  Widget && /*b4*/ rref = Widget{};       // (3) rhs: (p)rvalue 
+                                   // -> lifetime extension of temporary (prvalue)
+  Widget && /*b4*/ rref = std::move(var); // rhs: xvalue (rvalue) 
+                                   // -> xvalue can bind to rvalue-ref
 ```
 > Which lines do not compile?
+> - (1)-(2), see inline comments above
 
 > Why do we even need rvalue references?
-
+> - rvalue reference form the basis for the *move semantics* introduced in C++11 
 
 ## Const rvalue references
 If a rvalue reference is declared `const` it can bind to any rvalue (xvalues and temporaries):
@@ -338,16 +349,27 @@ If a rvalue reference is declared `const` it can bind to any rvalue (xvalues and
 (1) binds a const rvalue reference to a temporary object and (2) does the same for a expression determining a constant rvalue.
 
 > Do we need const rvalue references?
+ > - the are not useful in the sense that they could be moved from (as the object should not be changed) 
 
 ## `auto` type deduction 
 The above rules for "which value categories can bind to which reference type" are nearly identical for the `auto` type deduction:
 ```pmans
-  auto var = (...);           // (1) copy-ctor
-  const auto cvar = (...);    // (2) again non-reference
-  auto &lref = (...);         // (3) (...) binds to lvalue ref
-  const auto &clref = (...);  // (4) can bind to rvalue and lvalue
+  auto var = (...);           // (1) init/construction of non-reference variable
+  // human compiler:
+  // 1. type of "var" is not provided by programmer
+  // 2. but programmer used auto:
+  //    -> without a reference -> wants a non-refernce type
+  //    -> wants the compiler to deduce the type from the context 
+  //    -> i.e. use the expression on the rhs to find type
+  // 3. deduced type: type of the expression on the rhs
+  //    -> but neglecting reference-ness and const-ness
+  const auto cvar = (...);    // (2) same as (1), just adding a const (indep. of the constness on the rhs)
+  auto &lref = (...);         // (3) programmer asks for a lvalue reference type
+  //    -> rhs must be "bindable" to lvalue ref
+  const auto &clref = (...);  // (4) can bind to rvalue and lvalue (-> "everything")
   /*b7*/ auto &&fref = (...);       // (5) special functionality! "forwarding reference"
-  const auto &&crref = (...); // (6) (...) is rvalue
+  //    -> reference-ness and const-ness and value-category of rhs are "respected"
+  const auto &&crref = (...); // (6) (...) needs to be an rvalue
 ```
 - (1) initializes a non-reference variable,
 - (2) initialize a const non-reference variable,
@@ -363,11 +385,12 @@ With this knowledge let's try some things which do not work out with `auto`:
     Widget(const Widget &) = /*f*/ delete /*x*/;
   };
   Widget var{};
-  auto copy /*b1*/ = var;          // (1) error: no way to copy
-  const auto copy = var;    // (2) error: no way to copy
+  auto copy /*b1*/ = var;          // (1) error: no way to copy (copy ctor deleted)
+  const auto copy = var;    // (2) error: same as (1)
   auto &var = Widget{};     // (3) error: rhs is not an lvalue
   const auto &var = ...;    // (4) always works: rhs can be rvalue or lvalue
-  /*b7*/ auto &&fref = ...;       // (5) always works
+  Widget&& fref = ...       // what can bind here? -> rvalues only
+  /*b7*/ auto &&fref = ...;        // (5) always works
   const auto &&crref = var; // (6) error: not an rvalue
 ```
 
@@ -380,13 +403,13 @@ Let's look closer at the difference between (4) and (5) which both "always work"
 Some further example where the constness and value category is reflected in the reference:
 ```pmans
   Widget var{};
-  auto &&fref = var;                            // (1)
-  auto &&fref = std::as_const(var);             // (2) 
-  auto &&fref = Widget{};                       // (3) 
-  auto &&fref = std::move(std::as_const(var));  // (4)
+  auto &&fref = var;                            // (1) const:no, rvalue:no -> Widget&
+  auto &&fref = std::as_const(var);             // (2) const:yes, rvalue:no -> const Widget&
+  auto &&fref = Widget{};                       // (3) const:no, rvalue:yes -> Widget&& 
+  auto &&fref = std::move(std::as_const(var));  // (4) const:yes, rval:yes ->const Widget&&
 ```
 > What is the constness and value category of the references above?
-
+> - see inline comments above
 
 As `auto &&` references preserve the original constness and value category they are also *forwarding references*.
 
@@ -415,7 +438,7 @@ Often, a "perfect forwarding" of function parameters is highly desirable, e.g., 
 Let's consider a function taking a single non-reference parameter `Widget`:
 ```pmans
 Widget var;
-auto func = [](Widget w){};
+void func(Widget w){};
 ```
 A direct invocation using an lvalue (1) and rvalue (2) looks like this:
 ```pmans
@@ -430,8 +453,19 @@ func(std::forward<decltype(fref1)>(fref1)); // (1) call with lvalue reference
 func(std::forward<decltype(fref2)>(fref2)); // (2) call with rvalue reference
 ```
 > Why is it not feasible to implement perfect forwarding without forwarding references?
-
-
+> - cannot exploit value categories of arguments fully: only const lvalue ref "always works", but this disables the posibility to move or modify
+> - you would have to work with overloading (this is prohibitively verbose for multiple arguments) if you would like to reflect the "original" value category:
+>```pmans
+>func(const T& arg1) { // always works 
+>  nested_func(arg1); // nested function always sees a const lvalue
+>}
+>func(T& arg1) { // this overload would be considered when a >non-const argument is passed
+>  nested_func3(arg1); 
+>}
+>func(T&& arg1) { // this overload is considered for rvalues
+>  nested_func(std::move(arg1)); // nested function always sees an >rvalue-ref
+>}
+>```
 
 ## Closing remarks
 - We did not yet look at *move semantics* (which is the primary use case for moving things).
