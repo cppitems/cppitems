@@ -6,7 +6,7 @@ struct Widget {
 template <typename AUTO> void func(AUTO& arg){
     AUTO tmp{}; 
 };
-// specializations have to match "deductions types"
+// specializations have to match "deduction types"
 template <> void func<Widget>(Widget& arg){};
 template <> void func<const Widget>(const Widget& arg){};
 

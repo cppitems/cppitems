@@ -8,7 +8,7 @@ template <typename T> struct DebugType { using T::notexisting; };
 // usage: DebugType<decltype(...)> error;
 
 template <typename AUTO> void func(AUTO arg) {
-  // DebugType<AUTO> error;
+//   DebugType<AUTO> error;
   DebugType<decltype(arg)> error;
 }
 
