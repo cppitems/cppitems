@@ -11,16 +11,21 @@
 | **Mo	18.10.2021**|	**4pm**|	EX0	submission **deadline** |
 | Thu	21.10.2021|	9-11am |	L2, handout EX1.1 |
 | Thu	28.10.2021|	9-11am |    L3, handout EX1.2, EX1.3 |
+| Tue	02.11.2021|	4pm |    **"New"**  C++ consultation hour |
 | Thu	04.11.2021|	9-11am |	L4, FAQ EX1 |
 | **Mo	08.11.2021**|	**4pm**	 |EX1 submission **deadline**|
 | **Tue	09.11.2021**|	**2pm-7pm** |	EX1 online **discussion** (1/3 of grade)||
 | Thu	11.11.2021|	9-11am |	L5, handout EX2.1 |
+| Tue	16.11.2021|	4pm |    **"New"** C++ consultation hour |
 | Thu	18.11.2021|	9-11am	 |L6, handout EX2.2, EX2.3|
+| Tue	23.11.2021|	4pm |    **"New"** C++ consultation hour |
 | Thu	25.11.2021|	9-11am |	L7, FAQ EX2 |
 | **Mo	29.11.2021**|	**4pm**	 |	EX2 submission **deadline**|
 | **Tue	30.11.2021**|	**2pm-7pm**	 |EX2 online **discussion** (1/3 of grade)||
 | Thu	02.12.2021|	9-11am |	L8, handout EX3.1 |
+| Tue	07.12.2021|	4pm |    **"New"** C++ consultation hour |
 | Thu	09.12.2021|	9-11am |	L9, handout EX3.2 |
+| Tue	14.12.2021|	4pm |    **"New"** C++ consultation hour |
 | Thu	16.12.2021|	9-11am |	L10, handout EX3.3 (FAQ via chat) |
 | **Mo	10.01.2022**|	**4pm**	 |EX3	submission **deadline**|
 | **Tue	11.01.2022**|	**2pm-7pm** |	EX3 online **discussion** (1/3 of grade)|
