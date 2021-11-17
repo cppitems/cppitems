@@ -11,6 +11,7 @@ int main() {
 //   Widget w1(lval);
 //   Widget w2(lref);
 //   Widget w3(std::as_const(lref));
+//   DebugType<decltype(w3)> error;
 //   Widget w4(std::move(lref));
 //   Widget w5(1.0);
 }

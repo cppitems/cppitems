@@ -23,7 +23,12 @@ Assuming the implementation of `Pair` is identical for a supported range of type
 struct /*f4*/ Pair {
   /*b1*/ T first;
   /*b1*/ T second;
-  /*f4*/ Pair operator+(const /*f4*/ Pair &other) {
+  Pair(T ...)// -> args are used like function arguments for function templates
+
+  // why not working with implicit default ctor?
+  Pair() // -> no args no deduction possible
+  Pair(const Pair& other) // -> deduction via type of 'other' (which has a fixed type 'T' already)
+  /*f4*/ Pair operator+(const /*f4*/ Pair &other) { // -> deduction via type of 'other'
     return /*f4*/ Pair{first + other.first, second + other.second};
   }
 };
@@ -32,6 +37,7 @@ The usage of this class template is slightly different from the non-templated ve
 ```pmans
 ... 
 { // usage with `int`
+  Pair<auto> // no
   Pair/*b*/ <int> /*x*/ p1{1, 2}; 
   Pair/*b*/ <int> /*x*/ p2{2, 1};
   auto sum = p1 + p2;
@@ -44,8 +50,10 @@ The usage of this class template is slightly different from the non-templated ve
 ```
 
 > Why do the template parameters have to be explicitly provided above?
+> - deduction rules dont allow dedection from list initialization
 
 > Can this be avoided?
+> - yes, by providing extra "hints" to map between initializer expression and template types, either via constructors or "external" via deduction guides
 
 Let's extend the `Pair` by adding an user-defined constructor (above we were relying on list initialization):
 ```pmans
@@ -83,20 +91,26 @@ And again (as for function templates) there are three mechanism which lead to th
 ```
 
 > Why is `<>` required to use the default above?
-
+> - without the `<>` ctor arguments would be used , which would result in `Pair<int>` 
 
 > What if a class has no user-defined constructors, can we still enable automatic deduction?
-
+> - yes, if "deduction guide" is provided additionally 
 
 Let's look at some more situations of using the `Pair` class template where it might not be obvious which template argument is deduced:
 ```pmans
-Pair p(/*b*/ "1" /*x*/, /*b*/ "2" /*x*/); // (1) instantiates /*f*/ Pair<???> /*x*/ 
-Pair p(/*b*/ "12" /*x*/, /*b*/ "34" /*x*/); // (2) instantiates /*f*/ Pair<???> /*x*/ 
-Pair p(/*b*/ 1 /*x*/, /*b*/ "34" /*x*/); // (3) instantiates /*f*/ Pair<???> /*x*/ 
-Pair p(/*b*/ 1.0 /*x*/, /*b*/ 1 /*x*/); // (4) instantiates /*f*/ Pair<???> /*x*/ 
-Pair p(/*b*/ 1 /*x*/, /*b*/ 1.0 /*x*/); // (5) instantiates /*f*/ Pair<???> /*x*/ 
+Pair p(/*b*/ "1" /*x*/, /*b*/ "2" /*x*/); // (1) instantiates /*f*/ Pair<char[2]> /*x*/ 
+Pair p(/*b*/ "12" /*x*/, /*b*/ "34" /*x*/); // (2) instantiates /*f*/ Pair<char[3]> /*x*/ 
+Pair p(/*b*/ 1 /*x*/, /*b*/ "34" /*x*/); // (3) instantiates /*f*/ Pair<???> /*x*/ -> diff. types, deduction ambigious for 'T'
+Pair p(/*b*/ 1.0 /*x*/, /*b*/ 1 /*x*/); // (4) instantiates /*f*/ Pair<???> /*x*/ -> diff. types, deduction ambigious for 'T'
+Pair p(/*b*/ 1 /*x*/, /*b*/ 1.0 /*x*/); // (5) instantiates /*f*/ Pair<???> /*x*/ -> diff. types, deduction ambigious for 'T'
 ``` 
 > Can the templates above be instantiated? What are the deduced types?
+> - see inline comments above
+
+> About the "strings":
+> - `char[N]` from literal chararray, e.g. `"123"`
+> - `char` from char literal, e.g.  `'c'`
+> - `std::string` can be constructed from `char[N]` and `char`: `std::string("chararray"); std::string('c')`
 
 ```bash
 # examples are in
@@ -132,7 +146,7 @@ void func(/*f3*/ T&& arg) {}; // T&& is a rvalue reference
 }
 ```
 > Why does this difference make sense?
-
+ > - `T` would not be very appropriate to work with "inside the class" 
 
 So let us again recap the remaining rules for a class template with a single template parameter and a constructor with a single dependent argument.
 
@@ -152,11 +166,11 @@ Let's practice a bit:
 ```pmans
     double lval =1.0;
     double &lref = lval;
-    Widget w1(lval);                // (1) ??
-    Widget w2(lref);                // (2) ??
-    Widget w3(std::as_const(lref)); // (3) ??
-    Widget w3(std::move(lref));     // (4) ??
-    Widget w3(1.0);                 // (5) ??
+    Widget w1(lval);                // (1) Widget<double>
+    Widget w2(lref);                // (2) Widget<double>
+    Widget w3(std::as_const(lref)); // (3) Widget<double>
+    Widget w3(std::move(lref));     // (4) Widget<double>
+    Widget w3(1.0);                 // (5) Widget<double>
 ```
 
 ```bash
@@ -171,7 +185,7 @@ struct Widget {
    Widget(/*b*/ AUTO& /*x*/ arg) {};
 };
 ```
-- const-ness is preserved
+- const-ness is respected (but not added to bind e.g., rvalues)
 - constructor argument is always lvalue-reference
 - template parameter is never reference
 - the reference-ness of the expression passed to the constructor does not influence deduction
@@ -180,11 +194,11 @@ Let's again practice a bit:
 ```pmans
     double lval =1.0;
     double &lref = lval;
-    Widget w1(lval);                    // (1) Widget<??>::Widget(??& arg)
-    Widget w2(lref);                    // (2) Widget<??>::Widget(??& arg)
-    Widget w3(std::as_const(lref));     // (3) Widget<??>::Widget(??& arg)
-    Widget w4(std::move(lref));         // (4) Widget<??>::Widget(??& arg) 
-    Widget w5(1.0);                     // (5) Widget<??>::Widget(??& arg) 
+    Widget w1(lval);                    // (1) Widget<double>::Widget(double& arg)
+    Widget w2(lref);                    // (2) Widget<double>::Widget(double& arg)
+    Widget w3(std::as_const(lref));     // (3) Widget<const double>::Widget(const double& arg)
+    Widget w4(std::move(lref));         // (4) Widget<??>::Widget(??& arg) // cannot bind rval to lref
+    Widget w5(1.0);                     // (5) Widget<??>::Widget(??& arg) // cannot bind rval to lref
 ```
 ```bash
 # examples in
@@ -205,11 +219,11 @@ Let's practice again:
 ```pmans
     double lval =1.0;
     double &lref = lval;
-    Widget w1(lref);                            // Widget<???>::Widget(???&& arg)
-    Widget w2(std::move(std::as_const(lref)));  // Widget<???>::Widget(???&& arg) 
-    Widget w3(std::as_const(lref));             // Widget<???>::Widget(???&& arg)
-    Widget w4(std::move(lref));                 // Widget<???>::Widget(???&& arg)
-    Widget w5(1.0);                             // Widget<???>::Widget(???&& arg)
+    Widget w1(lref);                            // Widget<???>::Widget(???&& arg) // cannot bind lval to rref
+    Widget w2(std::move(std::as_const(lref)));  // Widget<const double>::Widget(const double&& arg) // ok!
+    Widget w3(std::as_const(lref));             // Widget<???>::Widget(???&& arg) // cannot bind const lval to rref
+    Widget w4(std::move(lref));                 // Widget<double>::Widget(double&& arg) // ok, xval binds
+    Widget w5(1.0);                             // Widget<double>::Widget(double&& arg) // ok, prval binds
 ```
 ```bash
 # examples in
@@ -237,23 +251,34 @@ clang++ -std=c++17 deduce_bycrefs.cpp
 A function template or class template can be defined using more than one template parameter. 
 Let's modify the `Pair` class template from above to now have separate template parameters for each member:
 ```pmans
-template <typename /*f5*/ FIRST, typename /*f6*/ SECOND> struct Pair {
+template <typename /*f5*/ FIRST, typename /*f6*/ SECOND>
+struct Pair {
   /*f5*/ FIRST first;
   /*f6*/ SECOND second;
   Pair(const /*f5*/ FIRST &first, const /*f6*/ SECOND &second)
       : first(first), second(second) {}
-  auto operator+(const Pair &other) {
+  // 1. make this operator+ a function template      
+  auto operator+(const Pair<SECOND,FIRST> &other) { // here 'Pair' is idential to the object's type
     return Pair{first + other.first, second + other.second};
   }
 };
 
+// free standing function operator+ with two template parameters
+
 // usage 
-Pair p1(1, 2.0); // (1) Pair<int, double> 
-Pair p2(2.0, 1); // (2) Pair<double, int> 
+Pair<...> p1(1, 2.0); // (1) Pair<int, double> 
+Pair<...> p2(2.0, 1); // (2) Pair<double, int> 
 auto sum = p1 + p2; // (3) still works ?
+// human compiler:
+// 1. p1 is  Pair<int, double>, p2 is  Pair<int, double>
+// 2. look if we can find a viable operator+ between these two types
 ```
 > Did anything break by introducing the second template parameter?
 > If yes, how to resolve it?
+> - in principle due to availability of implicit conversions between `double` and `int` we maybe expect it works
+> - ... but due to the impl. of the `operator+` only identical (or implicitly convertible) types can be `added`
+> - solution A) would e.g., be an free function to add Pairs with different template types
+> - solution B) would be a templated overload of `operator+` 
 
 ```bash
 # examples in
@@ -268,13 +293,13 @@ Of course, also multiple constructors can be present and not necessarily all (or
 template <typename /*f4*/ AUTO> 
 struct Widget {
   Widget(/*b4*/ AUTO arg) {};              // deduction succeeds
-  Widget(/*f6*/ double arg1, /*f3*/ int arg1) {}; // deduction fails
+  Widget(/*f6*/ double arg1, /*f3*/ int arg1) {}; // deduction fails (no connection of args to template type)
      ...
 }
 
 // usage
 Widget w(1.0); // succeeds
-Widget w(1.0,2); // fails
+Widget w(1.0, 2); // fails
 ```
 In such cases (1a) a user-defined *deduction guide* (1b) can be provided to enable "automatic" deduction:
 ```pmans
@@ -372,6 +397,12 @@ Specializations are not required to "look the same" (e.g., w.r.t. to members) as
 clang++ -std=c++17 pair_special.cpp
 ```
 
+---
+
+proceed here on 18.nov
+ 
+---
+
 ### Example for partial specialization: is_same
 Let's look an an example which uses class template specialization to implement a compile time check if two types are identical.
 We start by preparing two small helper classes `True` and `False` which each hold a `static const` member:
@@ -412,7 +443,10 @@ clang++ -std=c++17 is_same.cpp
 ```
 
 > Is there such a thing as `is_same` also in the standard library?
-
+<!-- 
+> - yes, stdlib type traits is full of them
+> - `std::is_same`
+-->
 
 ## Types of template parameters
 Up to now we only considered *type template parameters*: parameters which represent a type.
@@ -451,6 +485,9 @@ clang++ -std=c++17 nttp.cpp
 ```
 
 > How does the non-type template parameter compare to a simple bool member in above example?
+<!-- 
+> - performance: compile time vs. run time check
+-->
 
 ### Template template parameters
 An example for a template template parameter is in the following snippet:
@@ -468,8 +505,15 @@ clang++ -std=c++17 tttp.cpp
 ```
 
 > In the snippet above, is it actually required to use a template template parameter?
+<!--
+> - yes, if we want to provide a templated type (e.g., a container) directly as a parameter
+-->
 
 > What is the reason to use `...` above?
+<!-- 
+> - `...` solves the problem to account for any defaulted template parameters automatically, i.e., parameters we do not want to "deal with" anyway.
+-->
+
 
 
 ## Links

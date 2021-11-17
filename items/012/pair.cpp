@@ -16,9 +16,7 @@ template <typename T> struct DebugType { using T::notexisting; };
 template <typename T = double> struct Pair {
   T first;
   T second;
-
-  template <typename U >
-  Pair(const T &first, const U &second) : first(first), second(second) {
+  Pair(const T &first, const T &second) : first(first), second(second) {
     //   static_assert(std::is_floating_point<U>::value);
   }
   auto operator+(const Pair &other) {
@@ -27,6 +25,11 @@ template <typename T = double> struct Pair {
 };
 
 int main() {
+{
+    Pair p1(1,1.0); // cannot decide with one is the "base" and which one should be converted
+}
+
+
 //   { // usage template double
 //     Pair p1(1,1.0f);
 //     // DebugType<decltype(p1)> error;
