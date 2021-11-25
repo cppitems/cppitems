@@ -397,12 +397,6 @@ Specializations are not required to "look the same" (e.g., w.r.t. to members) as
 clang++ -std=c++17 pair_special.cpp
 ```
 
----
-
-proceed here on 18.nov
- 
----
-
 ### Example for partial specialization: is_same
 Let's look an an example which uses class template specialization to implement a compile time check if two types are identical.
 We start by preparing two small helper classes `True` and `False` which each hold a `static const` member:
@@ -426,7 +420,7 @@ const bool same = is_same<double,float>::value; // always false
 ```
 This changes when providing this partial specialization additionally:
 ```pmans
-template <class C>
+template <class C> // only one template parameter -> partial specialization 
 struct is_same<C, C> : True {}; // partial specialization, one parameter left
 ```
 This partial specialization is selected whenever it "matches better" than the primary template; which is the case when `A` and `B` are identical. Now we can use `is_same` as originally intended:
@@ -443,10 +437,9 @@ clang++ -std=c++17 is_same.cpp
 ```
 
 > Is there such a thing as `is_same` also in the standard library?
-<!-- 
-> - yes, stdlib type traits is full of them
+> - yes, stdlib `#include <type_traits>` is full of them
 > - `std::is_same`
--->
+
 
 ## Types of template parameters
 Up to now we only considered *type template parameters*: parameters which represent a type.
@@ -462,39 +455,77 @@ struct /*f6*/ Widget {
     /*f1*/ T data[/*b1*/ N]; 
 };
 // usage
-Widget</*f6*/ double,/*b2*/ 10> w10;
+Widget</*f6*/ double,/*b2*/ 10> w10; 
 Widget</*f6*/ double,/*b3*/ 100> w100;
+
+
+//loop
+for(int i=0;i!=N;++i){
+    Widget<double,i> wi;
+}
+
+// example of a use case:
+{
+  using Vector4 = Widget<double,4>;
+  // code using Vector4
+}
 ```
+
+Below is an example utilizing a boolean template parameter to switch between two implementation using a `constexpr-if-else` (and a version relying on a boolean member instead):
+
 ```pmans
-template <typename /*f1*/ T, /*f4*/ bool /*b6*/ option = false> struct Widget2 {
+// (V1) using non-type template parameter 
+template <typename /*f1*/ T, bool /*b6*/ option> 
+struct Widget2 {  
   /*f1*/ T calculate() {
-    if constexpr (/*b6*/ option) {
+    if /*f9*/ constexpr (/*b6*/ option) {
+        // this code must compile for T -> must only compile if "selected at compile time"
       return /*f1*/ T{0};
     } else {
+        // this code compiles for T -> "selected at compile time"
       return /*f1*/ T{1};
     }
   }
 };
 // usage
-Widget</*f6*/ double> wf;
-Widget</*f6*/ double,/*b4*/ true> wt;
+Widget<double, /*f5*/ false> wf{};
+Widget<double, /*f4*/ true> wt{};
+
+// (V2) using bool member instead 
+template <typename /*f1*/ T> 
+struct Widget2 {  
+    bool /*b6*/ option;    
+  /*f1*/ T calculate() {
+    if (/*b6*/ option) {
+        // this code must compile for T even if option is 'false'
+      return /*f1*/ T{0};
+    } else {
+        // this code must compiles for T even if option is 'true'
+      return /*f1*/ T{1};
+    }
+  }
+};
+// usage
+Widget<double> wf{/*f5*/ false};
+Widget<double> wt{/*f4*/ true};
+
 ```
 ```bash
 # examples in
 clang++ -std=c++17 nttp.cpp
 ```
 
-> How does the non-type template parameter compare to a simple bool member in above example?
-<!-- 
-> - performance: compile time vs. run time check
--->
+> How does the non-type template parameter (V1) compare to a simple bool member (V2) in the above example?
+> - performance advantage for (V1): compile time vs. run time "branching"
+> - the `constexpr-if-else` requires only the selected branch to be compatible with `T`; the "ordinary-if-else" requires both (all) branches to be compatibke with 'T'.
 
 ### Template template parameters
 An example for a template template parameter is in the following snippet:
 ```pmans
 template <typename T, /*b*/ template <typename ...> class CONTAINER /*x*/ = std::vector>
-struct Widget{
-  /*b*/ CONTAINER /*x*/<T,std::allocator<T>> ctnr;
+struct Widget{ // we want a widget which takes a type as template parameter which is a template on its own
+  /*b*/ CONTAINER /*x*/<T,std::allocator<T>> ctnr; // explicit instantiation
+  /*b*/ CONTAINER /*x*/<T> ctnr; // using default for 'allocator'
 };
 ```
 This allows to use an actual template type (e.g., `std::vector` and not `std::vector<double>`) as template parameter. 
@@ -505,14 +536,11 @@ clang++ -std=c++17 tttp.cpp
 ```
 
 > In the snippet above, is it actually required to use a template template parameter?
-<!--
 > - yes, if we want to provide a templated type (e.g., a container) directly as a parameter
--->
+
 
 > What is the reason to use `...` above?
-<!-- 
-> - `...` solves the problem to account for any defaulted template parameters automatically, i.e., parameters we do not want to "deal with" anyway.
--->
+> - `...` solves the problem to account for any defaulted template parameters automatically, i.e., parameters we do not want to "deal with" anyway (e.g., `std::allocator<T>` in the example above).
 
 
 
