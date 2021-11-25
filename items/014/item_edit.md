@@ -4,31 +4,24 @@ Using iterators (not only iterators from the stdlib, but any iterator-like conce
 If all usage scenarios are covered by appropriate iterators, acquiring detailed knowledge of the underlying data structure/container implementation is not required.
 
 > So, is the iterator approach a good idea?
-<!--
+> - using iterators is "more safe" than indexing
+> - if I have no clue about the 'length' of a data structure, how can I use indices? Iterator can help with `begin()` and `end()`, knowing an explicit length upfront might not be required for many algorithms
+> - Iterators are "required" if you want to use stdlib algorithms
+
 > - assume you have no knowledge of implementation of `std::vector` beside that it uses a contiguous memory block which is accessible through `vec.data()` in form of a raw pointer and that is has a `vec.size()` member. How to iterateover all values in the vector and modify the values?
-
 >   - w/o iterator:  `for (decltype(vec.size()) i = 0; i<vec.size(); ++i) {*(vec.data()+i) = ...; }`
-
 >   - using iterators (and range-based for): `for (auto&& value: vec) { value = ...; }`
-
 > - assume you have no knowledge of implementation details of `std::list`, but you work with an interface returning an `std::list` object which contains the collection of values you want wo work with: how to iterate over all values? 
-
 >   - w/o iterators: not possible, `std::list` does not expose functionality to interfere with implementation details (e.g., accessing a "nodes" or moving from node to node using something like `node->next` )
-
 >   - using iterators: `for (auto&& value: list) { value = ...; }`
-
 > - the pattern becomes clear: iterators decouple the underlying data structure details from its use
--->
+
 
 > Examples for interfaces with iterators (not stdlib)? 
-<!--
 >   - efficient access of dense data [vtk](https://vtk.org/doc/nightly/html/classvtkCellIterator.html#details)
-
 >   - efficient access of sparse data, e.g. [OpenVDB](https://www.openvdb.org/documentation/doxygen/codeExamples.html#sIteration)
-
 > - big advantage: "guaranteed performance" -> implementer knows how to best iterate over the collection
 
--->
 
 Let's look at a simple example:
 ```pmans
@@ -80,19 +73,18 @@ If an iterator for this use case "visit all active values" would be available, t
 ```pmans
     // iterate over 'active' values in Widget
     for (auto /*f4*/ iter = w./*b*/ begin_active() /*x*/; /*f4*/ iter /*b2*/ != w./*b*/ end_active() /*x*/; /*b2*/ ++/*f4*/ iter) {
-      double &value = /*b1*/ */*f4*/ iter;
+      double &value = /*b1*/ */*f4*/ iter; // access via dereferencing
+      // -> raw pointer arithmetic on contiguous memory is "compatible"
     }
+    // imagine how the iterator class/struct has to look like
+        
 ```
 > Describe apparent properties of the iterator object above and how this object is obtained!
-<!--
 > - iterator object must support `operator++` and `operator!=`
-
 > - iterator object provides access to value using `operator*`
-
 > - `begin_active()`  and `end_active()` return iterator objects apparently pointing to first value and "end"
-
 > - if `iter == w.end_active()` the for-loop ends and the loop body is not execute: this means "end" does not represent the "last" value, but something like "one after" or "iteration completed"
--->
+
 
 ## Implementation example: iterator for `Widget`
 Without thinking too much about iterators defined in the stdlib, let's try to implement a `IteratorActive` for the `Widget` compatible to the snippet above.
@@ -112,6 +104,7 @@ struct Widget {
     double &/*b*/ operator* /*x*/();
     /*f*/ IteratorActive /*x*/ &/*b*/ operator++ /*x*/();
     bool /*b*/ operator!= /*x*/(const /*f*/ IteratorActive /*x*/ &other);
+  }
   /*f*/ IteratorActive /*x*/ /*b*/ begin_active /*x*/();
   /*f*/ IteratorActive /*x*/ /*b*/ end_active /*x*/();
 };
@@ -159,15 +152,24 @@ struct /*f6*/ Widget {
     active.push_back(status);
   }
 };
+
+// 1. there is widget object already
+auto w = Widge{};
+auto start = w.begin_active();
+auto end = w.begin_active();
+// always use start and end -> no! 
+// always initialize iterator objects just before the iteration
+w.push_back(false,1);
+auto iter = w.begin_active();
+w.push_back(true,1);
+// can use safely use the iter from above?
+
 ```
 It is apparent that this new function can lead to a re-allocations of the dynamic memory owned by `data` and `active`. 
 
 > Do such "push backs" have consequences for `IteratorActive` instances associated with a `Widget` object?
-<!--
 > - yes, existing iterators associated with an object which is "pushed_back" are not updated w.r.t. the changed range of values
-
 > - in general: it depends on implementation details (of the iterator and data structure) which operations on a data structure lead to invalidation of existing iterators
--->
 
 ## Range-based for loop
 Above we have implemented an iterator for the special use case "visit all active values in a `Widget`".
@@ -212,10 +214,10 @@ If we would like to support *range-based* `for`-loop to access `WidgetArray` one
 ```pmans
 template <typename T, int N> 
 struct /*f*/ WidgetArray /*x*/ {
-  T data[N];
-  T */*b5*/ begin() { return data; } // iterator is T*
-  T */*b3*/ end() { return data + N; } 
-  // why no need to overload operators?
+  T data[N]; // raw array -> pointers support all we need already (pointer arithmetics)
+  T */*b5*/ begin() { return data; } // iterator is T* -> poiner support ++ != deref.
+  T */*b3*/ end() { return data + N; } // as end simply 'the address one past the end' is used
+  // why no need to overload operators? -> raw pointers support required operations
 };
 ```
 Alternatively, free functions can be used, too:
@@ -235,24 +237,17 @@ raw pointers full fill the requirements for `operator!=`, `operator++` (pointer 
 Note: Observing the above, iterators can be though of as a "generalization of pointer arithmetic" for situations where the underlying implementation does not map to a plain array or other logic ("visit only active values") is desired.
 
 > How would we have to adopt `Widget` and `IteratorActive` above to also work with a range-based for-loop?
-<!--
 > - only the member function names to obtain the begin and end iterators have to be adopted (`begin_active` -> `begin` , `end_active` -> `end`)
--->
+
 ## Stdlib iterators, containers, and algorithms 
 
 
 > Is considering further iterators for `Widget` above, which cover use cases like the following a good idea?
-<!--
 > - "visit all active values in reverse order": yes, why not.
-
 > - "visit all inactive values": yes, why not, can use the sample implementation as "visit all active values" 
-
 > - "visit all active values in ascending order": bad idea, sorting would require a not-so-lightweight iterator as `Widget` is not easily support "sorted access"
-
 >   - better approach for "sorted access": create a sorted instance of `Widget` and use "visit all active"
-
 >   - alternative: change underlying data structure if sorted access is the dominant use case
--->
 
 Considering the thoughs above, it becomes clear why the standard library separated functionality into: 
 - containers (provide access to iterators they support, i.e., iterators of a certain category)
@@ -311,7 +306,6 @@ These are the five categories
 ```
 
 > Does it make sense for a container to implement multiple categories of this hierarchy?
-<!--
 > - no, the hierarchy is inclusive, e.g.:
 >   - a random access iterator *is* also any of the other categories,
 >   - a forward iterator *is* a output iterator.
@@ -320,7 +314,7 @@ These are the five categories
 > - only between input and out opertors this inclusion is "broken": 
 >   - a input iterator *is not* a output operator 
 >   - a output iterator *is not* a input operator 
--->
+
 
 ### Const iterators
 
@@ -348,23 +342,22 @@ Let's see a list of examples:
 - `std::for_each` -> input iterators [for_each](https://en.cppreference.com/w/cpp/algorithm/for_each)
 - `std::fill_n` -> output iterator [fill_n](https://en.cppreference.com/w/cpp/algorithm/fill_n)
 
-> The links above point to the documention of th algorithms on cppreference.com . The documentation also contains a "possible implementation" which can be used to reason about the iterator category which is required for an algorithm, e.g. for 'fill_n'
->```pmans
->// possible implementations of 'std::fill_n' which requires an output iterator
->template<class OutputIt, class Size, class T>
->OutputIt fill_n(OutputIt first, Size count, const T& value)
->{
->    for (Size i = 0; i < count; i++) {
->        *first++ = value; // only 'increment' and 'assign' is used -> 'lowest' supporting category: output iterator
->    }
->    return first; // copy is allowed and unproblematic, as the local copy goes out of scope
->}
->```
+The links above point to the documention of th algorithms on cppreference.com . The documentation also contains a "possible implementation" which can be used to reason about the iterator category which is required for an algorithm, e.g. for `std::fill_n`:
+```pmans
+/* file: from cppreference.com */
+// possible implementations of 'std::fill_n' which requires an output iterator
+template<class OutputIt, class Size, class T>
+OutputIt fill_n(OutputIt first, Size count, const T& value)
+{
+    for (Size i = 0; i < count; i++) {
+        *first++ = value; // only 'increment' and 'assign' is used -> 'lowest' supporting category: output iterator
+    }
+    return first; // copy is allowed and unproblematic, as the local copy goes out of scope
+}
+```
 
 > Can I implement stdlib compatible iterators for my class/container?
-<!--
 > - yes, definitely.
-
 > - to integrate with the standard library the (e.g. algorithms) it is required to define an iterator category (and some more nested types follwing this scheme ):
 >```pmans
 >struct CompatibleForwardIterator {
@@ -376,9 +369,7 @@ Let's see a list of examples:
 >  ...
 >}
 >```
-
 > - for full compatibility, the implementation is required to implement all requirements for an iterator category, e.g., for a [forward iterator](https://en.cppreference.com/w/cpp/named_req/ForwardIterator)
--->
 
 
 ## Links

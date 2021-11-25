@@ -24,6 +24,6 @@ int main() {
     // item = ++count;
   }
   for (auto &&item : array) {
-    // std::cout << item << std::endl;
+    std::cout << item.m << std::endl;
   }
 }
