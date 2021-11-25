@@ -3,7 +3,7 @@
 We have already used "lambdas" in previous items. 
 Let's now look at *lambda expressions* in detail.
 
-A *lambda expression* constructs a *function object*,i.e., a class with an overloaded `operator()`, which is able to capture variables which are valid at the source location where the lambda expression is evaluated. 
+A *lambda expression* constructs a *function object*, i.e., a class with an overloaded `operator()`, which is able to capture variables which are valid at the source location where the lambda expression is evaluated. 
 This *function object* is of unnamed type and is ready to be invoked "like a function".
 The required parameters for the invocation are specific within the lambda expression.
 The invocation will execute the code block in the body of the lambda expression.
@@ -26,26 +26,45 @@ The **body** holds the block of code which is executed when invoking the functio
   ...
   int res = /*f6*/ lambda(4); // execution/invocation of function object
 ```
-> What is the maximum length for the code block in the body of a lambda? 
+> What is the maximum length for the code block in the body of a lambda?  
+> - there is no restriction
 
 
 The **capture clause** lists which variables of the "outside scope" are captured for a use inside the **body**:
 ```pmans
   int /*b1*/ i{};
   Widget /*b1*/ w{}; 
-  auto lambda = [/*b1*/ i, /*b2*/ &w] (int b) -> int { return /*b1*/ i + /*b1*/ w.i + b; }; 
+  auto lambda = [/*b1*/ i, /*b2*/ &w] (int b) -> int { 
+    i = 10;  // no effect on outer scope
+    w.i = 10; // effect on 'original' w: as it was captured by-reference     
+      return /*b1*/ i + /*b1*/ w.i + b;
+  }; 
   ...
 ```
 > Can the variable names be altered during capturing?
 >```pmans
 >  int b = 5;
 >  FuncPtr lambda = [b](int a) -> int { return a + b; }; // rename 'b' ?
+>  FuncPtr lambda = [myb = b](int a) -> int { return a + myb; }; // copy and rename to 'myb'
+>  FuncPtr lambda = [&myref = b](int a) -> int { return a + myref; }; // alias to 'b' named 'myref'
+> // 
 >```
+> 
+
+```pmans
+// classic
+typename Widget::nested_type func(int arg) {return Widget{}.m; };
+// trailing return type
+template<typename T>
+auto func(T arg) -> decltype(arg) { return arg;};
+decltype(arg) func(T arg) { return arg;} // not working (left to right symbok checking)
+```
 
 > What is the effect of using `&w` compared to `w` in the capture clause?
+> - capture "by-reference" instead of "by-copy"
 
 
-The **parameter list** list the parameter which are required when invoking the function object; they are also available in the body (as for any normal function):
+The **parameter list** lists the parameter which are required when invoking the function object; they are also available in the body (as for any normal function):
 ```pmans
   ...
   auto lambda = [i, &w] (int /*b1*/ b) -> int { return i + w.i + /*b1*/ b; }; 
@@ -84,30 +103,33 @@ by using an inline class with
     Widget w{};
     class /*f*/ ClosureType /*x*/ { 
     private:
-      int /*b1*/ i;         // (1a) capture by-value
-      Widget /*b2*/ &w;     // (1b) capture by-reference
+      //int /*b1*/ i;         // (1a) capture by-value
+      //Widget /*b2*/ &w;     // (1b) capture by-reference
 
     public:
       /*f*/ ClosureType /*x*/(int /*b1*/ i, Widget /*b2*/ &w) : /*b1*/ i(/*b1*/ i), /*b1*/ w(/*b1*/ w) {};               // (1)
       auto operator()(int /*b1*/ b) const -> /*b3*/ int { /*b*/ return i + w.i + b; /*x*/}   // (2)
     } /*b6*/ lambda(/*b1*/ i,/*b1*/ w);                                                  // (3)
+    ClosureType lambda(/*b1*/ i,/*b1*/ w); // ok also
     int res = /*b6*/ lambda(4);                                            // (4)
   }
 ```
 The effect and syntax of an invocation (4) is then identical to the above lambda expression.
 
 > How does the inline class look like when the captures are empty? Does this allow for further simplification?
+> - no data members -> stateless function object
 
 
 > Can a lambda function be implicitly converted to a function pointer?
 >```pmans
 >  using FuncPtr = int (*)(int);
->  FuncPtr lambda = [](int a) -> int { return a + 2; }; // works?
+>  FuncPtr lambda = [](int a) -> int { return a + 2; }; // works? yes, no members! behaves like a free function
 >  int b = 5;
->  FuncPtr lambda = [b](int a) -> int { return a + b; }; // works?
+>  FuncPtr lambda = [b](int a) -> int { return a + b; }; // works? no, has members, function needs access to this state
 >```
 
 Let's look at non-capturing lambdas in a bit more detail.
+
 
 ## Non-capturing lambdas
 
@@ -148,7 +170,9 @@ void /*f6*/ invoke(FuncPtrRetVoid callable) { callable(); }
 User-defined conversion functions allow to implement *implicit* and *explicit* conversions *form* a type *to* other types. 
 
 > What is difference between explicit and implicit conversions?
-
+> - a conversion is implicit if the type which is the target of the conversion is not explicitly stated in the code, but the required target type is deduced from the semantic embedding
+> - an explicit conversion does prescribe the target type of the conversion independent of the semantic embedding
+> - the specifier `explicit` can be used to disable the participation of a constructor or conversion function in implicit conversions 
 
 A simple example of a conversion function looks like this:
 ```pmans
@@ -220,10 +244,13 @@ The non-capturing lambda expression is implicitly converted to a function pointe
 A static member function (1) is additionally implemented, which is then returned  when a conversion to a function pointer is performed (2). 
 
 > When is this conversion to a function pointer useful?
+> - this conversion allows non-capturing lambdas to be used in situations requiring function pointers 
+> - this conversion provides a convenient way to define functions in a local scope
 
 
 > Why is this conversion not available if captures are present in the closure type?
-
+> - captures effectively create a stateful local function object; invoking the lambda requires access to this object
+> - a function does not have this access/object
 
 ## Special member functions
 Up to now we did not provide user-defined special member functions of the inline classes we used to mimic lambda expressions (beside a custom constructor). 
@@ -273,17 +300,26 @@ the function object is constructed at *evaluation time* (1) of the lambda expres
 int x = 5; 
 Widget w{7}; 
 
-auto lambda = [x,&w]() /*b7*/ mutable { ++x; return w.m + x;} // (1)
-x = 100;
-w.m = 100;
+auto lambda = [x,&w]() /*b7*/ mutable -> auto { ++x; return (w.m + x);} // (1) 
+// lambda.x == 5;
+// w just alias -> reference member
+x = 100; // change x to 100 in this scope
+w.m = 100; // influences lambda -> lamnda.w.m == 100
 auto res1 = lambda(); // (2a)
-std::cout << res1 << std::endl;
-x = 0;
-w.m = 0;
-auto res2 = lambda(); // (2b)
+// 1. ++(lambda.x) -> lambda.x == 6
+std::cout << res1 << std::endl; // 106
+x = 0; // reset in this scope (no effect on lambda)
+w.m = 0; // effect on lambda 
+auto res2 = lambda(); // (2b) 
+// 1. inc lambda.x
+// 2. return x == 7 
+// -> 7
 ```
 > What are the values of `res1` and `res2`?
-
+<!-- 
+> - `res1 = w.m + x;` where `x=5+1` and `w.m` = 7 
+> - `res2 = w.m + x;` where `x=6+1` and `w.m` = 0 
+-->
 ## Capture options
 Above, up to now we only cherry-picked captures explicitly by-reference or by-value for local variables in the outer scope.
 
@@ -295,6 +331,7 @@ To obtain a default capture by-value for "everything required" in the body of th
     Widget w{3};
     // default capture by-value    
     auto lambda = [/*b1*/ =](int b) { return g + w.i + b + i; }; 
+// [=] -> copy by-value (but only what is required for the body)     
 ```
 Similar for a default-capture by lvalue reference, `&` as first item in the capture list can be used:
 ```pmans
@@ -311,7 +348,7 @@ The default can be mixed with explicit exceptions from the default:
 Further, names of variables can be provided explicitly:
   ```pmans
     // explicit names for i and g
-    auto lambda = [/*b1*/ =, ref_i=&i, ref_g=g](int b) { return ref_g + w.i + b + ref_i; }; 
+    auto lambda = [/*b1*/ =, i=&i, ref_g=g](int b) { return i + ref_g + w.i + b + i; }; 
 ```
 Moving-constructing an object into function object is achieved using this syntax:
   ```pmans
@@ -321,11 +358,15 @@ Moving-constructing an object into function object is achieved using this syntax
 
 ### Enclosing object 
 > What happens if a lambda is defined in a scope with access to a `this` pointer and implicitly accesses the object pointed-to by `this`?
+> - if `this` is captured implicitly  (through  one of the two default capture modes `[=]` or `[&]`) the object referred to by this is captured by reference (see snippet below)
+
 
 ```pmans
   struct Widget {
     int /*b1*/ m;
     auto member() {
+      this->m;        
+      m;
       return [/*b1*/ &]() { return /*b7*/ this->m; }; // (1) 'this' is captured by reference
       return [/*b1*/ =]() {return /*b1*/ m; };       // (2) 'this' is still captured by reference
     }
@@ -444,8 +485,57 @@ int main() {
   auto lambda = []() {
     int /*b1*/ x{};
     return [&/*b1*/ x]() { return /*b1*/ x + 5; }; // capturing  local '/*f1*/ x' by reference
-  }; // 'x' goes out of scope and is destroyed
-  auto res = lambda(); // lambda holds dangling reference to '/*f1*/ x'
+  };
+  auto res = lambda(); 
+  // lambda holds dangling reference to the '/*f1*/ x' in the body of the lambda (was released after the operator() call completes)
+}
+```
+
+
+## Additional example
+
+```pmans
+// std::transform signature
+template< class InputIt,
+          class OutputIt,
+          class UnaryOperation >
+OutputIt transform( InputIt first1,
+                    InputIt last1,
+                    OutputIt d_first,
+                    UnaryOperation unary_op );
+```
+Let's look at different example how to use the overloads (e.g., of `tan` in `cmath`) as unary operation when transforming a vector:
+```pmans
+// mimic overloads of 'tan '
+double tan(double in) { return in; };
+float tan(float in) { return in; };
+
+// wrapper
+template <typename T> auto tan_wrapper(const T &arg) { return tan(arg); }
+
+int main() {
+  using T = double;
+
+  std::vector<T> v(10, 12.);
+
+  // error: cannot infer template 'UnaryOperation'
+  std::transform(v.begin(), v.end(), v.begin(), tan);
+
+  // explicit template parameters
+  std::transform<typename std::vector<T>::iterator,
+                 typename std::vector<T>::iterator, double (*)(double)>(
+      v.begin(), v.end(), v.begin(), tan);
+
+  // explicit cast to function pointer
+  std::transform(v.begin(), v.end(), v.begin(), static_cast<T (*)(T)>(tan));
+
+  // using template wrapper
+  std::transform(v.begin(), v.end(), v.begin(), tan_wrapper<T>);
+
+  // using a lambda with auto argument-> templated operator() 
+  std::transform(
+      v.begin(), v.end(), v.begin(),
+      [](const auto &a) -> auto { return tan(a); });
 }
 ```
 

@@ -44,9 +44,12 @@ The **capture clause** lists which variables of the "outside scope" are captured
 > Can the variable names be altered during capturing?
 >```pmans
 >  int b = 5;
->  FuncPtr lambda = [myb = b](int a) -> int { return a + myb; }; // rename 'b' ?
+>  FuncPtr lambda = [b](int a) -> int { return a + b; }; // rename 'b' ?
+>  FuncPtr lambda = [myb = b](int a) -> int { return a + myb; }; // copy and rename to 'myb'
+>  FuncPtr lambda = [&myref = b](int a) -> int { return a + myref; }; // alias to 'b' named 'myref'
 > // 
 >```
+> 
 
 ```pmans
 // classic
@@ -501,37 +504,38 @@ OutputIt transform( InputIt first1,
                     OutputIt d_first,
                     UnaryOperation unary_op );
 ```
-Let's look at different example how to use the overloads of `tan` in `cmath` inside the unary operation:
+Let's look at different example how to use the overloads (e.g., of `tan` in `cmath`) as unary operation when transforming a vector:
 ```pmans
+// mimic overloads of 'tan '
+double tan(double in) { return in; };
+float tan(float in) { return in; };
 
-// exemplaric overloads
-double tan(double in) {return in;}; 
-float tan(float in) {return in;}; 
+// wrapper
+template <typename T> auto tan_wrapper(const T &arg) { return tan(arg); }
 
-int main(){
-  using T  = double;    
+int main() {
+  using T = double;
+
   std::vector<T> v(10, 12.);
-  using return_type = T;
-  using argument_type = T;
 
-  std::transform<typename v::iterator, typename v::iterator,  double (*)(double) >(  v.begin(),v.end(), v.begin(), 
-                        tan);    
+  // error: cannot infer template 'UnaryOperation'
+  std::transform(v.begin(), v.end(), v.begin(), tan);
 
-  // old way
+  // explicit template parameters
+  std::transform<typename std::vector<T>::iterator,
+                 typename std::vector<T>::iterator, double (*)(double)>(
+      v.begin(), v.end(), v.begin(), tan);
 
-  using FPtr = return_type (*) (argument_type1);
-  std::transform( v.begin(),
-                  v.end(), 
-                  v.begin(), 
-                  //static_cast<typename v::value_type (*)(argument_type)>(tan) 
-                  static_cast<return_type (*)(argument_type)>(tan)              
-                  );
-  // solves the problem of seleting the right overload most elegantly
-  std::transform( v.begin(),
-                  v.end(), 
-                  v.begin(), 
-                  [](const auto& a){ return tan(a); }                
-                  );                  
+  // explicit cast to function pointer
+  std::transform(v.begin(), v.end(), v.begin(), static_cast<T (*)(T)>(tan));
+
+  // using template wrapper
+  std::transform(v.begin(), v.end(), v.begin(), tan_wrapper<T>);
+
+  // using a lambda with auto argument-> templated operator() 
+  std::transform(
+      v.begin(), v.end(), v.begin(),
+      [](const auto &a) -> auto { return tan(a); });
 }
 ```
 
