@@ -6,22 +6,42 @@ They are used for
 - (a) cheaply passing an object for inspection purposes (no modification) 
 <!--  // void func(/*f*/ const Widget & /*x*/w); // c++ -->
 ```pmans
-void func(/*b*/ const Widget * /*x*/w) {
+void func(/*b*/ const Widget & /*x*/w) { // C++
+void func(/*b*/ const Widget * /*x*/w) { // C
+    // (1) ref never "NULL"
+    // (2) ref does not need dereferencing
+    // with pointer 
+    int m = w->m; // ok read
+    w->m = 5;     // nok write
+    // with reference 
+    int m = w.m; // ok read
+    w.m = 5;     // nok write
+
     // can inspect Widget, but cannot modify
-    // no pointer arithmetic (allowed but useless)
+    // no pointer arithmetic intended
 }
 ``` 
 - (b) cheaply passing an object intended to be modified by the callee
 <!-- // void func(/*f*/ Widget & /*x*/w); // c++ -->
 ```pmans
-void func(/*b*/ Widget * /*x*/w) {
+void func(/*b*/ Widget & /*x*/w) { // C++
+void func(/*b*/ Widget * /*x*/w) { // C
     // can modify Widget
-    // no pointer arithmetic (allowed but useless)
+    // no pointer arithmetic intended
 }
 ``` 
 - (c) passing arrays (together with a size/length)
 <!-- // void func(/*f*/ std::vector<const Widget> & /*x*/array); // c++ -->
 ```pmans
+struct Vec { // also possible in C
+    Widget *data;
+    int size;
+    // unfortunately not dtor in C
+};
+void func(/*b*/ const Vec * /*x*/array);
+
+void func(/*b*/ const std::array<Widget,10>& /*x*/ array) { // C++
+void func(/*b*/ const std::vector<Widget>& /*x*/ array) { // C++
 void func(/*b*/ const Widget * /*x*/array, /*b*/ int /*x*/ size) {
     // pointer arithmetic to access array contents
 }
@@ -29,20 +49,20 @@ void func(/*b*/ const Widget * /*x*/array, /*b*/ int /*x*/ size) {
 - (d) passing handles to objects created with dynamic storage duration (or other resources with similar needs)
 <!-- // c++ solution here? -> smart pointer -->
 ```pmans
+// use a "smart" pointer: these somehow wrap a "raw resource" and provides an expressive idea about the ownership
 /*b*/ Widget * /*x*/ptr = /*f*/ new /*x*/ Widget(); // object creation, dynamic lifetime
-func(ptr);  // pass into function
+func(ptr);  // pass into function: should the function call delete on ptr?
 /*f*/ delete /*x*/ ptr; // manual termination required
 
+// use a "smart" pointer: these somehow wrap a "raw resource" and provides an expressive idea about the ownership
 /*b*/ Widget * /*x*/get_widget(){ 
     return /*f*/ new /*x*/ Widget(); // return from a function
 }
 ``` 
 > What could be used in C++ for the situations above?
-<!-- 
 > - (a)-(c) see comments in snippets above 
-
 > - (d) a smart pointer, e.g., `std::unique_ptr` or `std::shared_ptr`, is the go-to solution to manage  dynamically allocated resources in c++
--->
+
 
 Further let's list some functionality we expect to work for a raw pointer:
 ```pmans
@@ -56,12 +76,11 @@ struct Widget{
   ptr2 /*b1*/ = &w;                     // (3) assign
   ptr/*b2*/ ->m = 5;                    // (4) member access using ->
   (/*b1*/ *ptr).m = 6;                  // (5) dereferencing + .
-  /*b2*/ ++ptr;                         // (6) increment
-  /*b2*/ --ptr;                         // (7) decrement
-  if (ptr /*b2*/ != &w) {throw;};       // (8) operator!=
+  /*b2*/ ++ptr;                         // (6) increment // what does this? sizeof(Widget) -> step that far ahead in address space
+  /*b2*/ --ptr;                         // (7) decrement // other direction 
+  if (ptr /*b2*/ != &w) {throw;};       // (8) operator!= 
   ptr /*b1*/ = nullptr;                 // (9) nullable
-  if (ptr /*b2*/ == &w) {throw;};       // (10a) operator==
-  if (ptr /*b2*/ != &w) {throw;};       // (10b) operator!=
+  if (ptr /*b2*/ == &w) {throw;};       // (10) operator== // when is this true? if same address (only compare equal type pointers)
   Widget *ptr /*b2*/ = /*f3*/ new Widget{};    // (11) handle to a dynamic resource
   Widget/*b1*/ [/*b1*/ ] array = /*f3*/ new Widget/*b1*/ [10/*b1*/ ]{};    // (12a) array 
   array/*b1*/ [9/*b1*/ ] = Widget{9};                 // (12b) indexed array access
@@ -69,6 +88,22 @@ struct Widget{
 The *smart pointers* from the standard library discussed in the following aim to follow this functionality as long as it does not stand against the underlying idea of the respective *smart pointer*.
 
 ## std::unique_ptr
+```pmans
+std::unique_ptr<Widget> myfunc() // clear from signature: caller will own the "thing"
+{
+    std::unique_ptr<Widget> up = new Widget{}; // now myfunc owns it;
+    //static Widget *w = w;
+    return w; // implicit conversion to unique_ptr -> the function programmer proises to not own it anymore
+    return std::unique_ptr<Widget>(new Widget{});
+}
+auto ptr = myfunc(); // ptr is owned by caller;
+// what do we know:
+// (1) we obtained a dynamic resource from the function that we own now
+// (2) what can we do with it? move but not copy
+// (3) what do we have to do with it? nothing, unique_ptr does that for us, whatever it is
+```
+
+
 In cases where an exclusive ownership of a resource is desired, `std::unique_ptr` provides (and demands) expressiveness and delivers some convenience.
 Let's consider the function `get_widget` above, which returns a raw pointer to a `Widget` in this snippet:
 ```pmans
@@ -88,13 +123,34 @@ Widget */*b3*/ ptr = get_widget(&w);
 ```
 Let's transform `get_widget` to construct and return a `std::unique_ptr` instead
 ```pmans
-auto get_widget2() {
+std::unique_ptr<Widget> get_widget2() {
   // (1) passing pointer directly (here using new)
   return /*b*/ std::unique_ptr /*x*/<Widget>(new Widget{});
   // (2) using constructors of Widget indirectly (by forwarding the arguments) 
-  return /*b*/ std::make_unique /*x*/<Widget>(); 
+  return /*b*/ std::make_unique /*x*/<Widget>(arg1,arg2); 
 }
 ```
+
+> Why do we even use pointers in C++ and not only references?
+> - reference cannot be reassigned 
+>   - it might look like an assignemnt, but it is copy-assigning the object: 
+>      ```pmans
+>      refA = refB; // copy-assign the objects`
+>      ```
+>   - pointers can be reassigned: 
+>      ```pmans
+>      ptrA = ptrB; // overwrite memory location`
+>      ```
+> - if you construct a reference to a dynamic resource, there is no way to check if it is still alive:
+>      ```pmans
+>      T& ref = *dynamic_resource; // cannot check a != nullptr`
+>      if (&ref == nullptr) // not available for reference
+>      T& ptr = dynamic_resource; // cannot check a != nullptr`
+>      if (ptr == nullptr) // ok for pointer
+>      ```
+> - a reference cannot transfer "ownership" of a dynamic resource (there is no way to `delete` via a reference)
+> - BUT: if non of the above constraints is relevant: use a reference instead of a pointer
+
 Now the return type is expressive (it is clear the caller becomes the owner of the returned object) and access works the same way as for a raw pointer:
 ```pmans
   /*b*/ std::unique_ptr /*x*/<Widget> smart = get_widget2();
@@ -106,21 +162,26 @@ Now the return type is expressive (it is clear the caller becomes the owner of t
 As we can see, the returned object is usable like a raw pointer w.r.t. to accessing the pointed-to object.
 Additionally, manual termination is not required: the owned resource is released when the smart pointer variable goes out of scope.
 
+
+
 > Which further restrictions (SMFs) can we expect if the `std::unique_ptr` wants to model a **unique** handle to a resource?
 >```pmans
+>std::unique_ptr<Widget> w3 = get_widget2(); // ctor, ok
 >std::unique_ptr<Widget> w2 = get_widget2(); // ctor, ok
->w2 = w3;                         // copy assign, ??
->std::unique_ptr<Widget> w4 = w2; // copy ctor, ??
->std::unique_ptr<Widget> w3 = std::move(w2); // move ctor, ??
->w2 = std::move(w3));                        // move assign, ??
+>w2 = w3;                         // (1) copy assign, -> not available (if it would be: two unique ptrs on one resource)
+>std::unique_ptr<Widget> w4 = w2; // (2) copy ctor, -> same here
+>std::unique_ptr<Widget> w3 = std::move(w2); // (3) move ctor, yes allowed (e.g. to move ownership "out of a function scope")
+>w2 = std::move(w3));                        // (4) move assign, what about w2's original resource?
 >```
 
+
+
 > How is the automatic release of the resource implemented?
-<!-- > - in the destructor of `unique_ptr` -->
+> - in the destructor of `unique_ptr` or at a move assignment
 
 > What about pointer arithmetic and other operators? Are they supported?
-> - arithmetic, e.g., `operator++`, `operator--` ?? 
-> - comparison, e.g., `opterator==`, `opterator!=` ?? 
+> - arithmetic, e.g., `operator++`, `operator--` ?? (1) not allowed (but of course you can do that: `.get()` the raw pointer)
+> - comparison, e.g., `opterator==`, `opterator!=` ?? (2) definitely want a comparison to `nullptr`
 
 ### Overhead: what does a `std::unique_ptr` look like?
 If we decide to use a `std::unique_ptr` instead of a raw pointer, what can we expect in terms of performance? 
@@ -131,7 +192,7 @@ template <typename T> class /*f*/ unique_ptr /*x*/ {
 public:
   /*f*/ unique_ptr /*x*/(T *p) : ptr(p) {}
   ~/*f*/ unique_ptr /*x*/() { delete /*b*/ ptr /*x*/; }
-  T &operator*() { return */*b*/ ptr /*x*/; }
+  T &operator*() { return */*b*/ ptr /*x*/; } 
   T *operator->() { return /*b*/ ptr /*x*/; }
   ...
 };
@@ -167,20 +228,31 @@ auto /*b*/ open /*x*/(const char *name, const char *mode) {
   return std::unique_ptr<FILE, decltype(closer)>(/*f*/ std::fopen /*x*/(name, mode), /*b7*/ deleter);
 };
 
+// Side Discussion: how to express that I get handed a resource to be accessed but I do not want to interfere with the ownership/lifecycle mgnt?
+// option1: use an empty deleter?
+// option2: use raw pointer?
+// option3: use reference?
+// option4: use weak_ptr?
+// ... let's come back after finishing this lecture material
+
+
+
 int main() {
   auto filename = "data.json";
   auto mode = "r";
   auto file = open(filename, mode);
   if (file) {
-    parse(file); // (1) does this work like this?
+    parse(file); // (1) does this work like this? ?? is there an implicit conversion from a unique_ptr to raw ptr?
+    // no:  there is no implicit conversion, because this could easily lead to semantic embeddings (e.g. construction) violating the idea of "uniqueness"
   }
 }
 ```
 > Is there an implicit conversion from `std::unique_ptr` to the underlying raw pointer (see (1) in the snippet above) ?
-<!-- 
-    parse(file.get()); // how to pass raw pointer here now ?
-    // parse(&*file); // more cumbersome, this is why get is there
--->
+> - no, one as to rely on `.get()` or operators:
+>```pmans
+>    parse(file.get()); // use functionality of unque_ptr
+>    parse(&*file); // more cumbersome (this is why .get() is there)
+>```
 This demonstrates that a `std::unique_ptr` can also be used to manage resources which are not (directly) created with `new` and released with `delete`.
 
 #### Managing an array
@@ -191,7 +263,8 @@ up/*b1*/ [9/*b1*/ ] = ...; // set last element of array
 ```
 The relase of the array (which now requires `delete[]`) is realized by an appropriate deleter in the template specialization of `std::unique_ptr`.
 
-
+===
+end of lecture on 02.12.21
 
 ## std::shared_ptr
 If a resource is intended to be shared (i.e., multiple handles exist simultaneously and are shared between participating entities) it is not straightforward to decide when to perform the final release of the resource: is is desired that this only happens after all participating entities are no more able to access the resource.
