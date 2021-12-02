@@ -4,7 +4,6 @@
 Raw/native pointers are a versatile tool in C. 
 They are used for
 - (a) cheaply passing an object for inspection purposes (no modification) 
-<!--  // void func(/*f*/ const Widget & /*x*/w); // c++ -->
 ```pmans
 void func(/*b*/ const Widget * /*x*/w) {
     // can inspect Widget, but cannot modify
@@ -12,7 +11,6 @@ void func(/*b*/ const Widget * /*x*/w) {
 }
 ``` 
 - (b) cheaply passing an object intended to be modified by the callee
-<!-- // void func(/*f*/ Widget & /*x*/w); // c++ -->
 ```pmans
 void func(/*b*/ Widget * /*x*/w) {
     // can modify Widget
@@ -20,14 +18,12 @@ void func(/*b*/ Widget * /*x*/w) {
 }
 ``` 
 - (c) passing arrays (together with a size/length)
-<!-- // void func(/*f*/ std::vector<const Widget> & /*x*/array); // c++ -->
 ```pmans
 void func(/*b*/ const Widget * /*x*/array, /*b*/ int /*x*/ size) {
     // pointer arithmetic to access array contents
 }
 ``` 
 - (d) passing handles to objects created with dynamic storage duration (or other resources with similar needs)
-<!-- // c++ solution here? -> smart pointer -->
 ```pmans
 /*b*/ Widget * /*x*/ptr = /*f*/ new /*x*/ Widget(); // object creation, dynamic lifetime
 func(ptr);  // pass into function
@@ -38,11 +34,7 @@ func(ptr);  // pass into function
 }
 ``` 
 > What could be used in C++ for the situations above?
-<!-- 
-> - (a)-(c) see comments in snippets above 
 
-> - (d) a smart pointer, e.g., `std::unique_ptr` or `std::shared_ptr`, is the go-to solution to manage  dynamically allocated resources in c++
--->
 
 Further let's list some functionality we expect to work for a raw pointer:
 ```pmans
@@ -51,8 +43,8 @@ struct Widget{
 };
 ...
   Widget w; 
-  Widget *ptr /*b1*/ = &w;              // (1) ctor
-  Widget *ptr2 /*b1*/ = ptr;            // (2) ctor
+  Widget *ptr /*b1*/ = &w;              // (1) init/construction
+  Widget *ptr2 /*b1*/ = ptr;            // (2) init/construction
   ptr2 /*b1*/ = &w;                     // (3) assign
   ptr/*b2*/ ->m = 5;                    // (4) member access using ->
   (/*b1*/ *ptr).m = 6;                  // (5) dereferencing + .
@@ -116,7 +108,6 @@ Additionally, manual termination is not required: the owned resource is released
 >```
 
 > How is the automatic release of the resource implemented?
-<!-- > - in the destructor of `unique_ptr` -->
 
 > What about pointer arithmetic and other operators? Are they supported?
 > - arithmetic, e.g., `operator++`, `operator--` ?? 
@@ -177,10 +168,7 @@ int main() {
 }
 ```
 > Is there an implicit conversion from `std::unique_ptr` to the underlying raw pointer (see (1) in the snippet above) ?
-<!-- 
-    parse(file.get()); // how to pass raw pointer here now ?
-    // parse(&*file); // more cumbersome, this is why get is there
--->
+
 This demonstrates that a `std::unique_ptr` can also be used to manage resources which are not (directly) created with `new` and released with `delete`.
 
 #### Managing an array
@@ -213,28 +201,15 @@ std::shared_ptr<Widget> sp4 = get_widget2(); // implicit from rvalue unique_ptr
 // what is the reference count of sp1, sp2, sp3, and sp4 here? 
 ```
 > Is it possible to convert between `std::unique_ptr` and `std::shared_ptr`?
-<!-- 
-> - yes, an implicit conversion is available from `unique_ptr` to `shared_ptr` (from rvalues only)
 
-> - a conversion from `shared_ptr` to `unique_ptr` is not allowed (would need to invalidate all references)
--->
 
 > Which restrictions (SMFs) can we expect to be lifted for `std::shared_ptr` (compared to `std::unique_ptr`)?
-<!--
-> - copy assignment and copy construction is expected to be available
--->
+
 
 > Does the principle of the automatic release mechanism differ from `std::unique_ptr`?
-<!--
-> - identical in general; but the condition for its execution differs: only a decrement of the reference count to '0' triggers a release of the resource;
 
-> - this might also happen during a copy assignment, not only when a variable goes out of scope
--->
 
 > What about pointer arithmetic and other operators?
-<!--
-> - same as for `std::unique_ptr`
--->
 
 
 ### Overhead: what does a `std::shared_ptr` look like
@@ -288,28 +263,12 @@ It is visible that the construction (of the "original" handle ) triggers a subse
 This means a `shared_ptr` does introduce some overhead (memory and access). This has to be considered for practical applications: if very small objects are managed by a `shared_ptr`, the relative increase of the memory footprint is not negligible. It might still be practical to use a `shared_ptr` for small objects, depending on the application context.
 
 > What is expected to happen in the body of the three SMFs marked above (to implement the reference counting)?
-<!--
-> - see comments above
-    // copy ctor: increment
-    // move ctor: no increment
 
-    // copy assign: 
-    // decrement for current resource
-    // reassign
-    // increment for newly assigned resource
-    return *this;
-
-    // dtor: decrement
--->
 
 > Why is the `ControlBlock` a structure and not simply a integral type?
-<!--
-> - in this simple case, could be just a pointer to integer; in the stdlib, some more members are present in the `ControlBlock` structure to support advanced features of a `shared_ptr`: weak reference counting, custom deleters, and aliasing construction (access with offset)
--->
+
 > Would a static member be sufficient for reference counting, too?
-<!--
-> - no, a static member could only count references for all handles to shared pointers per type, but not per resource.
--->
+
 
 As we can see from the snippet above `shared_ptr`s can be copied and moved.
 Let's examine some examples using again a `Widget` and a function returning a `share_ptr<Widget>`:
@@ -338,9 +297,6 @@ auto get_widget() {
 ```
 
 > What are the reference counts in the above snippet?
-<!--
-> - see inline comments
--->
 
 **Capturing the managed object outside**
 ```pmans
@@ -352,9 +308,6 @@ auto get_widget() {
   ptr->m = 5; // (3) is this ok?
 ```
 > Is it safe to perform the last line of the snippet above?
-<!--
-> - no, the resource `ptr` is pointing to is deallocated at (1b)
--->
 
 
 **Managing the same resource more than once**
@@ -366,9 +319,7 @@ auto get_widget() {
   // how many control blocks do exist now?
 ```
 > What does it mean if a resource is managed "more than once"?
-<!--
-> - this means that two independent reference counting control blocks exist for a single shared resource; this situation should never be created
--->
+
 
 **Providing a `shared_ptr` from "inside" #1**
 ```pmans
@@ -387,10 +338,7 @@ auto get_widget2() {
   auto sp2 = sp->mfunc(); // (2) is this ok?
 ```
 > Is there a way to return a `shared_ptr` from within a managed class?
-<!--
-> - returning a `shared_ptr` constructed from `this` leads again to a "double management" (like above)
-> - to support such a situation, the object has to know that it is managed by a shared pointer and somehow needs access to the respective control block, see next example
--->
+
 
 **Providing a `shared_ptr` from "inside" #2**
 
@@ -433,10 +381,6 @@ This makes a `weak_ptr` suitable to be used in conjunction with `std::enable_sha
 ### Thread safety
 
 > Is a `std::share_ptr` "thread-safe"?
-<!--
-> - the modifying access to the shared_ptr (i.e., its control block) is thread-safe
-> - the thread-safety-ness w.r.t. to the access of the managed resource is not influenced by the shared pointer: the shared pointer does not synchronize modifying access to the resource in any way; the access is direct.
--->
 
 
 ## Links

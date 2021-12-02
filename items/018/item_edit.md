@@ -51,8 +51,8 @@ struct Widget{
 };
 ...
   Widget w; 
-  Widget *ptr /*b1*/ = &w;              // (1) ctor
-  Widget *ptr2 /*b1*/ = ptr;            // (2) ctor
+  Widget *ptr /*b1*/ = &w;              // (1) init/construction
+  Widget *ptr2 /*b1*/ = ptr;            // (2) init/construction
   ptr2 /*b1*/ = &w;                     // (3) assign
   ptr/*b2*/ ->m = 5;                    // (4) member access using ->
   (/*b1*/ *ptr).m = 6;                  // (5) dereferencing + .
