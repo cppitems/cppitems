@@ -8,21 +8,27 @@ struct /*b*/ Base /*x*/ {
   int b;
   void member(){};
 };
+// sizeof(Base) -> sizeof(int)
 struct /*b*/ Widget /*x*/ : /*b*/ Base /*x*/ {
   int w;
   void member(){};
 };
+// sizeof(Widget) -> 2*sizeof(int)
 struct /*b*/ Other /*x*/ : /*b*/ Widget /*x*/ {
   int o;
   void member(){};
 };
+// sizeof(Other) -> 3*sizeof(int)
 
 // memory layout for 'Other'
-// struct /*f*/ Other /*x*/ { // layout
-//  int b; // from Base
-//  int w; // from Widget
+struct /*f*/ Other /*x*/ { // layout
+ int b; // from Base
+// int w; // from Widget
 //  int o;
-// };
+};
+Other* optr = new Other{};
+Base* bptr = optr;
+Other* optr2 = bptr; // ok here (but not general) 
 
 int main() {
   Other o{{{5}, 7}, 6};
@@ -57,7 +63,9 @@ struct /*f*/ Base /*x*/ {
 };
 struct /*b*/ Widget /*x*/ : /*f*/ Base /*x*/ {
   int w;
-  /*b*/ Widget /*x*/() : /*f*/ Base /*x*/(), w() {} // default construction
+  /*b*/ Widget /*x*/() :  /*f*/ Base() /*x*/, w(...this from base...) {
+
+  } // default construction
 };
 ```
 The construction mechanism constructs base classes before derived classes (in the order of appearance in the list of base classes) and before any other non-static members.
@@ -98,7 +106,7 @@ struct /*f*/ Base /*x*/ {
 };
 struct /*b*/ Widget /*x*/ : /*f*/ Base1, Base2 /*x*/ {
   int w;
-  ~/*b*/ Widget /*x*/() {}
+  ~/*b*/ Widget /*x*/() {/* ddd */}
 };
 
 int main() {
@@ -106,8 +114,10 @@ int main() {
   // destruction sequence:
   // w.~Widget() // itself
   //   w.~w()    // members
-  // w.Base::~Base() // base itself
-  //   w.Base::b()   // base members
+  // w.Base2::~Base2() // base itself
+  //   w.Base2::b()   // base members  
+  // w.Base1::~Base1() // base itself
+  //   w.Base1::b()   // base members
 }
 ```
 > Why is the order of destruction reversed?
@@ -121,9 +131,12 @@ The following illustrates the accessibility of inherited members depending on th
 ```pmans
 /* file: access.cpp */
 struct Base {
-  private: int prv;   // access only from inside 'Base'
-  protected: int pro; // + access from within more-derived classes
-  public:  int pub;   // + access from outside
+private: 
+  int prv;   // access only from inside 'Base'
+protected: 
+  int pro; // + access from within more-derived classes
+public:  
+  int pub;   // + access from outside
 };
 ```
 **private**
@@ -157,6 +170,23 @@ struct WidgetPub : /*b*/ public /*x*/ Base {
 };
 ```
 - fully extending the outward interface with the interface of the base (beside constructors)
+
+
+```pmans
+struct Base {};
+struct Widget : public Base {
+public: // implicit
+    int m;
+};
+class Base {
+public:
+  int g;
+};
+class Widget : Base {
+private: // implicit
+    int m;
+};
+```
 
 **granular access**
 
@@ -365,6 +395,17 @@ If a hierarchy is polymorphic (at least one virtual function is involved) `dynam
   auto *w = /*b*/ dynamic_cast /*x*/</*f*/ Widget /*x*/ *>(base); // downcasting (for polymorphic hierarchies)
   delete base;
 ```
+
+<!--
+  // background:
+  // static_cast = check formal convertability of types at compile time (e.g.
+  // base to derived) reinterpret_cast = compile time overrule: no checks at all
+
+  // const_cast = remove constness of const aliasas which actually refer to
+  // something non-const 
+  // dynamic_cast = runtime resolution of implementation of polymorphic types (RTTI) virtual dtor = required only if deletion of derived via a base pointer is intended
+  // reinterpret_cast = 
+>
 
 ## Links
 - Derived classes: https://en.cppreference.com/w/cpp/language/derived_class

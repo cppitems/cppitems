@@ -5,23 +5,23 @@ struct Base {
 };
 
 struct WidgetPrv : private Base {
-    int base_prv = Base::prv; // prv is inaccessible
+    //int base_prv = Base::prv; // prv is inaccessible
     int base_pro = Base::pro; // Base::pro access is private
     int base_pub = Base::pub; // Base::pub access is private
-public: // (implicit due to 'struct') 
-    using Base::pub; // introduce WidgetPrv::pub (public)
-    using Base::pro; // introduce WidgetPrv::pro (public)   
-};
-struct WidgetPro : protected Base {   
-    // int base_prv = Base::prv; // prv is inaccessible
-    int base_pro = Base::pro; // Base::pro access is protected
-    int base_pub = Base::pub; // Base::pub is protected    
-};
-struct WidgetPub : public Base {  
-    // int base_prv = Base::prv; // prv is inaccessible
-    int base_pro = Base::pro; // Base::pro access is protected
-    int base_pub = Base::pub; // Base::pub is public    
-};
+// public: // (implicit due to 'struct') 
+//     using Base::pub; // introduce WidgetPrv::pub (public)
+//     using Base::pro; // introduce WidgetPrv::pro (public)   
+// };
+// struct WidgetPro : protected Base {   
+//     // int base_prv = Base::prv; // prv is inaccessible
+//     int base_pro = Base::pro; // Base::pro access is protected
+//     int base_pub = Base::pub; // Base::pub is protected    
+// };
+// struct WidgetPub : public Base {  
+//     // int base_prv = Base::prv; // prv is inaccessible
+//     int base_pro = Base::pro; // Base::pro access is protected
+//     int base_pub = Base::pub; // Base::pub is public    
+// };
 
 
 int main(){
