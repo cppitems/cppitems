@@ -1,5 +1,8 @@
 1 // item status
-# Inheritance
+
+# STARTING 9.15am 
+
+# Inheritance 
 
 In C++, classes can form a hierarchy by *inheritance*. Let's look at a very simple example of a hierarchical coupling of three types:
 ```pmans
@@ -20,15 +23,17 @@ struct /*b*/ Other /*x*/ : /*b*/ Widget /*x*/ {
 };
 // sizeof(Other) -> 3*sizeof(int)
 
-// memory layout for 'Other'
-struct /*f*/ Other /*x*/ { // layout
- int b; // from Base
-// int w; // from Widget
+// memory layout from 'Other'
+// struct /*f*/ Other /*x*/ { // layout
+//  int Base::b; // from Base
+//  int Widget::w; // from Widget
 //  int o;
-};
+// };
+
 Other* optr = new Other{};
 Base* bptr = optr;
-Other* optr2 = bptr; // ok here (but not general) 
+Other* optr2 = bptr; // ok here, as we can guarantee that bptr points to a Other (inspecting all code above)
+// Note: in general "raw" implicit or explicit UP-casting in a hierarchy is "dangerous" should not be required
 
 int main() {
   Other o{{{5}, 7}, 6};
@@ -89,9 +94,8 @@ int main() {
 }
 ```
 > Why are base classes initialized before members?
-<!-- 
 > - more-derived types might already want to utilize the state of their "base-part" during initialization
--->
+
 
 ## Destruction
 The destruction sequence starts with the execution of the destructor body of the derived class, followed by
@@ -121,9 +125,8 @@ int main() {
 }
 ```
 > Why is the order of destruction reversed?
-<!--
 > - more-derived type might depend on state of the base classes during destruction
--->
+
 
 ## Access control
 For a `struct` the default mode for the access of inherited properties is `public` while the default mode when using the `class` keyword is `private`. 
@@ -229,22 +232,57 @@ int main() {
 ```
 Let's see what it looks like when a function returns an upcasted object:
 ```pmans
-/*f*/ Base /*x*/ get_base() { return Widget{}; } // returning upcasted Base by-value
+/*f*/ Base /*x*/ get_base(); // this is NOT expected to return anything else than a Base
+ { return Widget{}; } // returning upcasted Base by-value
 
 // usage
-auto b = get_base(); 
+auto b = get_base();
+// what is b? -> a copy of the Base-part of the Widget in the return expression
 ```
+
 > Is the returned value still a `Widget` somehow?
-<!--
 > - No, `b` is a `Base` (copy constructed from the `Base`-part of `Widget`)
--->
+
+### Example: Inheritance from two classes on the same level
+
+```pmans
+struct Base1 { int m; };
+struct Base2 { int m; };
+struct Derived : Base1, Base2 {
+    int m; 
+    Derived() = default;
+    Derived() : Base1(), Base2(), m() {
+    }
+}
+
+// usage
+int main(){
+    Derived d{};
+    int m = d.Base1::m; // dive into Base1 group of members
+    int m = d.m; // selects what? ambiguous! could be Base1 or Base2
+}
+
+struct Layout {
+  int Base1::m;
+  int Base2::m;
+  int d;
+}
+```
+### Using pointers
 
 If it is desired to keep the `Widget`-part alive after returning, a pointer to a dynamically allocated `Widget` could be used:
 ```pmans
+/*f*/ Base /*x*/ *get_base_ptr() { return &Widget{}; } //  creating a dangling ref
 /*f*/ Base /*x*/ *get_base_ptr() { return /*b3*/ new Widget{}; } // returning upcasted Widget via pointer
+// /*f*/ UP<Widget> /*x*/ get_base_ptr() { return unique_ptr<Widget>(/*b3*/ new Widget{}); }
 // usage
 auto* ptr = get_base_ptr();
 delete ptr; // this calls ~Base(), is this enough, or a problem?
+// If you form a hierarchy: the default is "cheap" hirarchy  w.r.t. memory footprint/overhead and calling overhead.
+// -> hierarchy is super lightweight (composing with no overhead)
+// what you dont get: 
+// - a relation from base alias to feature/properties of more derived (overloads, i.e. polymorphic behaviour)
+// If you want a relation form bases-alias to derived things -> this is a bit more "costly" 
 ```
 The returned pointer points to the `Base`-part of the layout of `Widget`; the `Widget`-part of the layout is still around. 
 Let's assume a different `WidgetOwns` to emphasize this problematic situation:
@@ -259,9 +297,8 @@ struct /*b*/ WidgetOwns /*x*/ : /*f*/ Base /*x*/ {
 `WidgetOwns` is now a resource owning class, which emphasizes the need for a proper deallocation at the end of its lifetime.
 
 > Does the deallocation work as expected when deallocating using a `Base` pointer?
-<!--
 > - No, the hierarchy in use is not *polymorphic* : the deconstruction only invokes `~Base()` which is not aware of the need to call `~Widget()`. 
--->
+
 
 **If** *polymorphic* behavior (via *virtual functions*) is expected from a hierarchy (which has consequences on the memory footprint and performance when invoking member function) this has to be explicitly demanded by the programmer.
 
@@ -272,12 +309,15 @@ To guarantee a proper deallocation of `WidgetOwns`' resources (i.e., calling its
 ```pmans
 struct Base {
   int b;
-  /*b*/ virtual /*x*/ ~Base() = default;
+  /*b*/ virtual /*x*/ ~Base() = default; // opt in for a polymorphic hierarchy
+  // this means: deconstruction via base_ptr is OK now!
 };
 struct WidgetOwns : Base {
   int *data;
   WidgetOwns() : data(new int) {}
-  ~WidgetOwns() /*b*/ override /*x*/ { delete data; };
+  ~WidgetOwns() /*b*/ override /*x*/ { delete data; }; // this will be used when destruction via base_ptr
+  /*b*/ virtual /*x*/ ~WidgetOwns()  { delete data; }; // also ok (but compiler cannot help)
+  ~WidgetOwns() /*b*/ final /*x*/ { delete data; }; // also ok (compiler can help us even more)
 };
 ```
 This has consequences: the hierarchy is now *polymorphic*. When a derived object is constructed, the final overriding resolution to any of the virtual functions is available at run time; this information is available at run time even if the object is casted between levels of the hierarchy.
@@ -322,23 +362,16 @@ struct /*f*/ Widget2 /*x*/ : public /*f*/ Base /*x*/ {
 ```
 This is an example of using a polymorphic hierarchy to be able to syntactically interact with each of them in the exact same way, i.e., calling the `calculate()` member.
 
-> Why do we have to use dynamically allocated objects above?
-<!--
+> Why do we have to use (dynamically) allocated objects above?
 > - different types with different object footprints cannot be stored in a container
-
 > - native pointers (and also smart pointers) have a fixed size
-
 > - pointers to *not* dynamically allocated objects cannot be used: 
 objects need to outlive the scope of creation
--->
+
 > What are the disadvantages?
-<!--
 > - one additional allocation per object (performance!)
-
 > - for containers with contiguously allocated memory: objects are not stored contiguously, but the pointers (performance!)
-
 > - semantics change to "reference semantics", e.g., a copy now copies the  (smart) pointer, not the pointed-to object. The default in C++ is "value semantics", e.g., it might be harder to reason about local code.
--->
 
 ### Virtual functions: (typical) implementation
 Typically the lookup for overridden functions is implemented by introducing an extra pointer in each polymorphic object, which points to a *virtual function table* (there is exactly one for each polymorphic type). This table is a list of function pointers which were detected at compile time as the final overrides for each virtual function in the hierarchy.
@@ -358,11 +391,8 @@ The call of a virtual function then uses the `vptr` to access the virtual functi
 Note: Compared to the invocation of a non-virtual function this introduces a run time overhead. Also inlining is not possible for virtual function calls.
 
 > Is the `override` keyword actually required? 
-<!--
 > - no, it is "just" to help to avoid mistakes, i.e., if a desired override does not match (due to a mistake in the signature) a virtual function
-
 > - as the `override` keyword is optional, a virtual destructor does not have to be explicitly overridden: the implicit default destructor will override.
--->
 
 ## Abstract classes
 In the above we defined members of the base class as virtual and overloaded them higher in the hierarchy.
@@ -405,7 +435,7 @@ If a hierarchy is polymorphic (at least one virtual function is involved) `dynam
   // something non-const 
   // dynamic_cast = runtime resolution of implementation of polymorphic types (RTTI) virtual dtor = required only if deletion of derived via a base pointer is intended
   // reinterpret_cast = 
->
+-->
 
 ## Links
 - Derived classes: https://en.cppreference.com/w/cpp/language/derived_class
