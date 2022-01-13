@@ -29,8 +29,8 @@
 | Thu	16.12.2021|	9-11am |	L10, handout EX3.3 (FAQ via chat) |
 | **Mo	10.01.2022**|	**4pm**	 |EX3	submission **deadline**|
 | **Tue	11.01.2022**|	**2pm-7pm** |	EX3 online **discussion** (1/3 of grade)|
-| Thu	13.01.2022|	9-11pm |	L11 |
-| Thu	20.01.2022|	9-11pm |	L12 |
+| Thu	13.01.2022|	9-11am |	L11 |
+| Thu	20.01.2022|	9-11am |	L12 |
 
 # Topics
 ## C++17 core language and standard library:
