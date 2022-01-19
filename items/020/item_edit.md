@@ -1,7 +1,4 @@
 1 // item status
-
-# STARTING 9.15am 
-
 # Inheritance 
 
 In C++, classes can form a hierarchy by *inheritance*. Let's look at a very simple example of a hierarchical coupling of three types:

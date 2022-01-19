@@ -47,7 +47,11 @@ Constructing a `std::thread` in C++ can look likes this, when using a callable w
       /*b*/ std::thread /*x*/ thread(/*f*/ callable /*x*/, /*f*/ arg1 /*x*/, /*f*/ arg2 /*x*/); 
       // how costly is creating a thread?
       /*b*/ std::thread /*x*/ thread2(/*f*/ callable /*x*/, /*f*/ arg1 /*x*/, /*f*/ arg2 /*x*/);      
-      thread.join();
+      // (A) how many thread active ? potentially 2 thread from the statements above and the main thread
+      // (B) can I have any clue when a thread starts really? can there be HUGE delays?
+      // (C) how to get a new THREAD? from OS interface (pthreads)
+      // (D) can you have this program run on a single-core?
+      thread.join(); // wait for finish this thread: branching ends here
       thread2.join();
       // (2) c value?
 ``` 
@@ -63,10 +67,11 @@ After construction `thread` immediately invokes the callable using the provided 
 
 The construction of a thread does not support passing references as constructor arguments, this is why the following is not immediately possible:
 ```pmans
-      auto /*f*/ callable /*x*/ = []int /*f*/ &a /*x*/, int /*f*/ &b /*x*/) { ... };
+      auto /*f*/ callable /*x*/ = [](int /*f*/ &a /*x*/, int /*f*/ &b /*x*/) { ... };
       int arg1 = 2;
       int arg2 = 2;
       /*b*/ std::thread /*x*/ thread(/*f*/ callable /*x*/, /*f*/ arg1 /*x*/, /*f*/ arg2 /*x*/); // does not compile
+      /*b*/ std::thread /*x*/ thread(/*f*/ callable /*x*/, /*f*/ std::ref(arg1) /*x*/, /*f*/ std::ref(arg2) /*x*/);
 ```
 > How to overcome this problem if we want to pass a reference (e.g., a large object to be manipulated by the thread)?
 <!--
@@ -135,7 +140,7 @@ Now let's see the same example when using a thread to "fulfill the promise":
   }
   t.join();
 ```
-> We can see that the callable had to be adopted (compared to having a regular `return` value). Is this desirable?
+> We can see that the callable had to be adapted (compared to having a regular `return` value). Is this desirable?
 > - no, not desirable
 
 A convenient approach to utilize "unmodified" callables with non-void return types with threads is `std::packaged_task`:
@@ -214,6 +219,18 @@ clang++ -std=c++17 async.cpp -O3 -pthread && ./a.out
 ```
 
 ## Critical Sections (locking) 
+
+```pmans
+#pragma omp parallel
+{
+    // executed by all threads indep.
+#pragma critical {
+    // only one thread at a time can enter
+}
+ // executed by all threads indep.
+}
+```
+
 For the probably most common synchronization task, i.e., protecting read or write access to a shared variable, the standard library provides `std::mutex` which is recommended to be used only in conjunction with a `std::unique_lock`  or `std::lock_guard`.
 If a mutex would be used without a lock this can look like this:
 ```pmans
@@ -261,7 +278,7 @@ In situations where is is required to acquire multiple mutexes before performing
 
 ```
 > Why is the snippet above preferable over a sequential locking using two `lock_guards`?
-<!--
+
 ```pmans
 func1(){
   ...
@@ -280,7 +297,7 @@ func2(){
   ...
 }
 ```
--->
+
 
 Locking is in no way a lightweight approach: only a single thread can execute the locked region and all other threads are blocked on entry.
 Let's look at a performance comparison without even using more than one thread:
@@ -311,10 +328,12 @@ The standard library provides a wrapper for synchronizing access to entities whi
 ```
 
 > Is the expression `a = a + 5;` below atomic as a whole?
+> - NO: but the read on RHS is atomic and load/store on the LHS is atomic 
+> - no guarantee what happens meantime/between atomics on other threads
 ```pmans
 std::atomic<int> a(0);
 a = a /*f*/ + /*x*/ 5;  // (3a)
-...         // (3b) equivalent?
+a += 5;         // (3b) equivalent?
 ```
 
 Atomics can be used for the variable which is shared directly, but they can also be used as index to non-atomic memory, see below for a simplistic example:
