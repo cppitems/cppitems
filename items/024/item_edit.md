@@ -128,12 +128,11 @@ Exceptions provide a powerful mechanism to unwind the call stack until a matchin
 > - no
 > - destructors should not throw (in general: dellocation routines should never be interrupted by an exception)
 
-> Do you find an example for a "dellocation routine" in EX3 which is not a destructor?
-<!--
+> Do you find an example for a "deallocation routine" in EX3 which is not a destructor?
 > - unique_ptr::reset(...)
 > - shared_ptr assignment operators
-> - 
--->
+
+
 
 The intended use of exceptions is to react on (rare) cases where there is an issue with an external resource (e.g., access to a file or memory allocation). 
 Valuable debug information can be collected before stack unwinding (part) of an application.
@@ -240,106 +239,8 @@ struct Widget{
 }
 ```
 > What about exception safety of the involved functions in the above snippet?
-
-# CMake revisited
-CMake is a configuration generator.
-It is not a build-system/toolchain -- but it **knows** everything about some build-systems/toolchains.
-
-> Examples for build-systems/toolchains?
-<!--
-> - make, Xcode, VS
--->
-
-CMake generates configurations for the supported build-systems.
-It provides ways to formulate/encode a high-level logical project configuration in a generic way using its own language (as far as possible, e.g., some things map directly to options/settings in a specific toolchain). 
-This logical project configuration is then used to generate configurations for different build-systems. 
-
-> Does CMake support other languages than C/C++?
-<!--
-> - focus C/C++ Fortan/ObjC(Apple)/swift
--->
-
-> How should much should the release date of your compiler and CMake you use differ?
-<!--
-> - cmake should be a bit more recent than compiler
--->
-
-Currently, for C++, there is no practical alternative to CMake.
-
-You have seen many CMakeLists.txt files in the exercises: It is not required to understand all details in a CMake configuration in order to use it.
-
-> When do you have to understand details of the CMake config of a dependency?
-<!--
-> - if the CMake config does not allow you to build/use the project suitable for your use case
--->
-
-In general, CMake files can be considered as source code and all general best practices apply, too:
-- consistent style and conventions
-- redundancy is error-prone
-- file organization 
-
-### Modern CMake 
-"Modern CMake" (~2018/3.12) characterizes a *target-centric* approach to describe configurations: 
-- everything is a target (think of a C++ class)
-- properties of targets can be configured (think of C++ members/setters)
-- one group of properties of a target is concerned with how and from what it should be build: **build-requirements**
-- another group of properties is concerned with how a target can be used (after it is build/installed): **usage-requirements**
-
-> Examples for different categories of **build-requirements**?
-<!--
-> - source files, link/inlcude dirs, compiler options, preprocessor defines
--->
-
-> Target properties can be *transitive*. What does that mean?
-<!--
-> - if targets depend on each other this propagates the requirements
--->
-
-Alternative to the *target-centric* the "classic" CMake way is to use (many)variables which are not immediately coupled to a specific target.
-
-### Use cases for CMake
-If a project uses/supports CMake this can mean different things:
-- using CMake "only" to build binaries
-- using CMake to install libraries
-- providing CMake support for clients/users of the project
-- using CPack 
-- using CTest
-
-> What can be done if a project does not support CMake but needs to be integrated in a larger CMake based project?
-<!--
-> - write a custom FindXXX.cmake  `find_package(XXX)`
--->
-
-### Project boundaries/modularity
-It might happen that a project provides a "monolithic CMake support": many things (e.g., sub-projects) are configured in a non-modular way. 
-The "Modern" CMake approach can help to avoid/resolve such situations:
-Each target can exits on its own (being build and consumed), declaring dependencies between targets allows to configure more complex projects.
-
-> If you have to patch a CMakeLists.txt of a project you depend on, is this a good sign? If not, what is the "right" way to customize a CMake based project you consume?
-<!--
-> - passing commandline arguments/setting cmake variables 
--->
-
-## Example
-Let's look at an example to illustrate the *target-centric* approach:
-- The `Widget` Project contains a library and an associated test
-- The `UseWidget` Project depends on the library provided by `Widget`
-
-> Hands-On
-```
-widget > cmake -S . -B build -L -D CMAKE_INSTALL_PREFIX=`pwd`/../install -D CMAKE_BUILD_TYPE=Debug
-widget > cmake --build build
-widget > cmake --install build
-usingwidget > cmake -S . -B build 
-usingwidget > cmake --build build
-```
+> - see inline comments
 
 ## links
 - C++ exceptions: https://en.cppreference.com/w/cpp/language/exceptions
 - Exceptions Best Practices: https://docs.microsoft.com/en-us/cpp/cpp/errors-and-exception-handling-modern-cpp
-- CMake Wiki: https://gitlab.kitware.com/cmake/community/-/wikis/home
-- CMake tutorial: https://cmake.org/cmake/help/v3.18/guide/tutorial/index.html
-- CMake for library authors (2019, Craig Scott): https://www.youtube.com/watch?v=m0DwB4OvDXk
-- "Modern CMake" talks (2018/19, Deniz Bahadir): https://www.youtube.com/watch?v=y7ndUhdQuU8 and https://www.youtube.com/watch?v=y9kSr5enrSk
-- Effective CMake (2017, Daniel Pfeifer): https://www.youtube.com/watch?v=bsXLMQ6WgIk
-- CMake config example: https://dominikberner.ch/cmake-interface-lib/
