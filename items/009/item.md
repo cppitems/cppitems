@@ -25,7 +25,7 @@ Vector::Vector(Vector &&other) {
   // Important: have default initializers for the members
   //  to have a valid state of 'this' before swapping
   std::swap(other._data, _data);
-  std::swap(other._size, _size);
+  std::swap(other._size, _size); //
 }
 
 // destructor
